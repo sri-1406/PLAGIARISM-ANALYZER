@@ -1,0 +1,7 @@
+flask
+scikit-learn
+nltk
+pandas
+flask-cors
+pypdf
+python-docx

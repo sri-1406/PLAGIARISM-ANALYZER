@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Plagiarism Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>AI Plagiarism Analyzer</h1>
+                <button id="themeToggle" class="btn btn-secondary theme-toggle">
+                    <span class="icon-dark">🌙</span>
+                    <span class="icon-light">☀️</span>
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <section class="card">
+                <textarea id="textInput" placeholder="Paste your text here to analyze..."></textarea>
+                
+                <div class="actions">
+                    <div class="file-upload">
+                        <label for="fileInput" class="btn btn-primary">Upload Document</label>
+                        <input type="file" id="fileInput" accept=".txt,.pdf,.docx" style="display: none;">
+                        <span id="fileName" style="color: var(--text-light); font-size: 0.9rem;">No file selected</span>
+                    </div>
+
+                    <button id="analyzeBtn" class="btn btn-primary">Analyze</button>
+                </div>
+
+                <div id="loader" class="loader">
+                    <div class="spinner"></div>
+                    <p>Analyzing text integrity...</p>
+                </div>
+
+                <div id="errorMsg" class="error-msg"></div>
+            </section>
+
+            <section id="results" class="card">
+                <div class="result-header">
+                    <h2>Analysis Result</h2>
+                    <div class="speedometer-container">
+                        <svg class="speedometer-svg" viewBox="0 0 200 110">
+                            <!-- Single Background Track (Grey) -->
+                            <path class="gauge-track" d="M 20,100 A 80,80 0 0,1 180,100" fill="none" stroke="#f1f5f9" stroke-width="14" stroke-linecap="round"/>
+                            
+                            <!-- 3 Mode Segments (Background zones) -->
+                            <!-- Low (0-30%) -->
+                            <path d="M 20,100 A 80,80 0 0,1 53,35.2" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
+                            <!-- Mid (30-70%) -->
+                            <path d="M 53,35.2 A 80,80 0 0,1 147,35.2" fill="none" stroke="#f59e0b" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
+                            <!-- High (70-100%) -->
+                            <path d="M 147,35.2 A 80,80 0 0,1 180,100" fill="none" stroke="#ef4444" stroke-width="14" stroke-linecap="round" opacity="0.2"/>
+
+                            <!-- Active Progress Arc (Colored Gradient) -->
+                            <path id="gaugeProgress" d="M 20,100 A 80,80 0 0,1 180,100" fill="none" stroke="url(#gaugeGradient)" stroke-width="14" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
+                                                       <!-- Seamless elegant needle at 90 deg center -->
+                            <!-- High-visibility theme-aware needle -->
+                            <g id="needleGroup">
+                                <path d="M 100,20 L 104,100 L 96,100 Z" fill="var(--needle)" />
+                                <circle cx="100" cy="100" r="5" fill="var(--needle)" stroke="#fff" stroke-width="1.5" />
+                            </g>
+
+
+                            <defs>
+                                <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#10b981" />
+                                    <stop offset="50%" stop-color="#f59e0b" />
+                                    <stop offset="100%" stop-color="#ef4444" />
+                                </linearGradient>
+                            </defs>
+                            
+                            <!-- Small center pivot dot -->
+                            <circle cx="100" cy="100" r="3" fill="#fff" />
+                        </svg>
+                        
+                        <div class="gauge-text-overlay">
+                            <span id="scoreVal">0.0%</span>
+                            <span class="label">Plagiarism</span>
+                        </div>
+                    </div>
+
+
+
+                </div>
+
+                <div class="section-results">
+                    <h3>Top Matches</h3>
+                    <ul id="docList" class="match-list">
+                        <!-- Matches will be inserted here -->
+                    </ul>
+                </div>
+
+                <div class="section-results">
+                    <h3>Highlighted Content</h3>
+                    <div id="highlightedBox" class="highlighted-content">
+                        <!-- Highlighted text will be inserted here -->
+                    </div>
+                </div>
+
+                <div class="section-results history-section">
+                    <h3>Analysis History</h3>
+                    <div id="historyList" class="history-grid">
+                        <!-- History items will be loaded here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <script>
+        // Update filename on UI
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const name = e.target.files[0] ? e.target.files[0].name : 'No file selected';
+            document.getElementById('fileName').textContent = name;
+        });
+    </script>
+</body>
+</html>
