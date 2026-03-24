@@ -8,83 +8,141 @@ import io
 class ReportGenerator:
     def __init__(self):
         self.styles = getSampleStyleSheet()
+        # Custom styles for professional academic look
         self.title_style = ParagraphStyle(
             'TitleStyle',
             parent=self.styles['Heading1'],
-            fontSize=24,
-            textColor=colors.HexColor('#4f46e5'),
-            alignment=0,
-            spaceAfter=20
+            fontSize=22,
+            textColor=colors.HexColor('#1e293b'),
+            alignment=1, # Centered
+            spaceAfter=25,
+            fontName='Helvetica-Bold'
         )
         self.header_style = ParagraphStyle(
             'HeaderStyle',
             parent=self.styles['Heading2'],
             fontSize=16,
-            textColor=colors.HexColor('#111827'),
-            spaceAfter=12
+            textColor=colors.HexColor('#4f46e5'),
+            spaceBefore=15,
+            spaceAfter=10,
+            fontName='Helvetica-Bold'
         )
-        self.normal_style = self.styles['Normal']
-        self.small_style = ParagraphStyle('SmallStyle', parent=self.styles['Normal'], fontSize=8, textColor=colors.grey)
-
-    def _get_header(self, doc_type="Single Analysis"):
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return [
-            Paragraph("Plagiarism Analyzer Report", self.title_style),
-            Paragraph(f"Type: {doc_type}", self.normal_style),
-            Paragraph(f"Generated on: {now}", self.small_style),
-            Spacer(1, 24)
-        ]
+        self.sub_header_style = ParagraphStyle(
+            'SubHeaderStyle',
+            parent=self.styles['Normal'],
+            fontSize=12,
+            textColor=colors.HexColor('#334155'),
+            fontName='Helvetica-Bold',
+            spaceBefore=8,
+            spaceAfter=5
+        )
+        self.normal_style = ParagraphStyle(
+            'NormalStyle',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            leading=14,
+            alignment=0 # Left aligned
+        )
+        self.match_text_style = ParagraphStyle(
+            'MatchTextStyle',
+            parent=self.styles['Normal'],
+            fontSize=9,
+            leading=12,
+            leftIndent=20,
+            textColor=colors.HexColor('#475569')
+        )
+        self.footer_style = ParagraphStyle(
+            'FooterStyle',
+            parent=self.styles['Normal'],
+            fontSize=8,
+            textColor=colors.grey,
+            alignment=1
+        )
 
     def _sanitize_text(self, text):
-        # Remove hard newlines that fragment words, but keep paragraph breaks
-        # Split by double newline to preserve paragraph structure
-        paragraphs = text.split('\n\n')
-        sanitized_paragraphs = []
+        if not text: return ""
+        # Remove hard newlines, but keep double newlines for paragraph breaks
+        text = text.replace('\r\n', '\n')
+        paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+        sanitized = []
         for p in paragraphs:
-            # For each paragraph, replace single newlines with a space
+            # Join single lines into one paragraph stream
             clean_p = ' '.join(p.split('\n'))
-            sanitized_paragraphs.append(clean_p)
-        return '<br/><br/>'.join(sanitized_paragraphs)
+            sanitized.append(clean_p)
+        return '<br/><br/>'.join(sanitized)
+
+    def _get_page_header(self, doc_type):
+        now = datetime.now().strftime("%B %d, %Y | %H:%M")
+        return [
+            Paragraph("Plagiarism Analysis Report", self.title_style),
+            Paragraph(f"<b>Mode:</b> {doc_type}", self.normal_style),
+            Paragraph(f"<b>Generated:</b> {now}", self.normal_style),
+            Spacer(1, 10),
+            Paragraph("<hr color='#e2e8f0'/>", self.normal_style),
+            Spacer(1, 20)
+        ]
 
     def generate_single_report(self, text, results):
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter, leftMargin=50, rightMargin=50, topMargin=50, bottomMargin=50)
-        elements = self._get_header("Single Document Analysis")
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=letter, 
+            leftMargin=60, rightMargin=60, topMargin=60, bottomMargin=60
+        )
+        elements = self._get_page_header("Single Document Analysis")
 
-        # Overall Score
-        elements.append(Paragraph("Overall Findings", self.header_style))
+        # Summary Section
         score = results.get('overall_percentage', 0)
-        score_html = f"<font size='14' color='#4f46e5'><b>Plagiarism Score: {score:.1f}%</b></font>"
-        elements.append(Paragraph(score_html, self.normal_style))
-        elements.append(Spacer(1, 15))
+        elements.append(Paragraph("Analysis Summary", self.header_style))
+        summary_data = [
+            ["Metric", "Value"],
+            ["Total Similarity Score", f"{score:.1f}%"],
+            ["Detected Sources", str(len(results.get('top_matches', [])))],
+            ["Analysis Status", "Completed ✓"]
+        ]
+        t_summary = Table(summary_data, colWidths=[200, 200])
+        t_summary.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f8fafc')),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#64748b')),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+            ('PADDING', (0,0), (-1,-1), 10),
+            ('TEXTCOLOR', (1,1), (1,1), colors.HexColor('#ef4444') if score > 30 else colors.HexColor('#10b981'))
+        ]))
+        elements.append(t_summary)
+        elements.append(Spacer(1, 25))
 
-        # Top Matches Table
-        matches = results.get('top_matches', [])
+        # Top Matches
+        matches = results.get('top_matches', [])[:15] # Limit to top 15
         if matches:
-            elements.append(Paragraph("Top Overlap Sources", self.styles['Heading4']))
-            data = [["Source Content Preview", "Match %"]]
-            for m in matches:
-                data.append([Paragraph(m['title'], self.normal_style), f"{(m['score']*100):.1f}%"])
+            elements.append(Paragraph("Identified Sources (Top 15)", self.header_style))
+            match_data = [["No.", "Source Identifier / Preview", "Similarity"]]
+            for i, m in enumerate(matches):
+                match_data.append([
+                    str(i+1), 
+                    Paragraph(m['title'], self.normal_style), 
+                    f"{(m['score']*100):.1f}%"
+                ])
             
-            t = Table(data, colWidths=[420, 80])
-            t.setStyle(TableStyle([
-                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f3f4f6')),
-                ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#374151')),
-                ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            t_matches = Table(match_data, colWidths=[30, 380, 80])
+            t_matches.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f1f5f9')),
+                ('ALIGN', (0,0), (0,-1), 'CENTER'),
+                ('ALIGN', (2,0), (2,-1), 'CENTER'),
                 ('VALIGN', (0,0), (-1,-1), 'TOP'),
                 ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-                ('BOTTOMPADDING', (0,0), (-1,0), 10),
-                ('TOPPADDING', (0,0), (-1,0), 10),
-                ('LEFTPADDING', (0,0), (-1,-1), 8),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#d1d5db'))
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+                ('PADDING', (0,0), (-1,-1), 8),
             ]))
-            elements.append(t)
-            elements.append(Spacer(1, 25))
+            elements.append(t_matches)
+            elements.append(Spacer(1, 30))
 
-        # Original Text
+        # Highlighted Content
+        elements.append(PageBreak())
         elements.append(Paragraph("Analyzed Document Content", self.header_style))
-        sanitized_content = self._sanitize_text(text)
-        elements.append(Paragraph(sanitized_content, self.normal_style))
+        sanitized = self._sanitize_text(text)
+        elements.append(Paragraph(sanitized, self.normal_style))
 
         doc.build(elements)
         buffer.seek(0)
@@ -92,59 +150,65 @@ class ReportGenerator:
 
     def generate_multi_report(self, doc_names, matrix, pairwise_results):
         buffer = io.BytesIO()
-        # Use a wider horizontal margin for matrix
-        doc = SimpleDocTemplate(buffer, pagesize=letter, leftMargin=30, rightMargin=30, topMargin=50, bottomMargin=50)
-        elements = self._get_header("Multi-Document Cross-Comparison")
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=letter, 
+            leftMargin=50, rightMargin=50, topMargin=50, bottomMargin=50
+        )
+        elements = self._get_page_header("Multi-Document Comparison")
 
-        # Summary Checklist
-        elements.append(Paragraph("Documents Analyzed", self.header_style))
-        for i, name in enumerate(doc_names):
+        # Inventory
+        elements.append(Paragraph("Dataset Inventory", self.header_style))
+        for name in doc_names:
             elements.append(Paragraph(f"• {name}", self.normal_style))
         elements.append(Spacer(1, 20))
 
         # Similarity Matrix
-        elements.append(Paragraph("Inter-Similarity Matrix (Pairwise Overlap)", self.header_style))
-        
-        # Matrix Table
-        data = [["File name"] + doc_names]
-        for name1 in doc_names:
-            row = [Paragraph(name1, self.normal_style)]
-            for name2 in doc_names:
+        elements.append(Paragraph("Similarity Matrix (%)", self.header_style))
+        # Fixed column count for matrix - limit display for width if too many docs
+        display_names = doc_names[:6] # Limit columns for A4 width
+        data = [[""] + display_names]
+        for name1 in display_names:
+            row = [Paragraph(f"<b>{name1}</b>", self.normal_style)]
+            for name2 in display_names:
                 score = matrix[name1][name2]
-                row.append(f"{score:.1f}%")
+                row.append(f"{score:.1f}")
             data.append(row)
-        
-        # Professional column width formula
-        total_avail_width = 540
-        file_col_width = 100
-        other_col_width = (total_avail_width - file_col_width) / len(doc_names)
-        col_widths = [file_col_width] + [other_col_width] * len(doc_names)
 
-        t = Table(data, colWidths=col_widths)
-        t.setStyle(TableStyle([
+        available_width = 500
+        col_w = available_width / (len(display_names) + 1)
+        t_matrix = Table(data, colWidths=[col_w] * (len(display_names) + 1))
+        t_matrix.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#4f46e5')),
             ('TEXTCOLOR', (0,0), (-1,0), colors.white),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e5e7eb')),
-            ('FONTSIZE', (0,0), (-1,-1), 7),
-            ('BACKGROUND', (0,1), (0,-1), colors.HexColor('#f9fafb')),
-            ('LEFTPADDING', (0,0), (-1,-1), 4),
-            ('RIGHTPADDING', (0,0), (-1,-1), 4)
+            ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ('FONTSIZE', (0,0), (-1,-1), 8),
+            ('PADDING', (0,0), (-1,-1), 6)
         ]))
-        elements.append(t)
-        elements.append(Spacer(1, 40))
+        elements.append(t_matrix)
+        if len(doc_names) > 6:
+            elements.append(Paragraph(f"<i>* Showing top 6 of {len(doc_names)} documents in table view.</i>", self.footer_style))
+        elements.append(Spacer(1, 30))
 
-        # Pairwise details
-        critical_pairs = [p for p in pairwise_results if p['similarity_percentage'] > 5]
-        if critical_pairs:
-            elements.append(Paragraph("Detailed Pairwise Summaries", self.header_style))
-            for pair in critical_pairs:
-                elements.append(Paragraph(f"<b><u>{pair['doc1']}</u> vs <u>{pair['doc2']}</u></b>", self.normal_style))
-                elements.append(Paragraph(f"Similarity Score: <b>{pair['similarity_percentage']:.1f}%</b>", self.normal_style))
-                elements.append(Paragraph(f"Significant matches identified: {pair['matching_sentences_count']} similar segments.", self.small_style))
-                elements.append(Spacer(1, 12))
+        # Detailed Pairwise Breakdown
+        elements.append(Paragraph("Critical Pairwise Analysis", self.header_style))
+        # Limit to top 15 pairs by similarity
+        sorted_pairs = sorted(pairwise_results, key=lambda x: x['similarity_percentage'], reverse=True)[:15]
+
+        for pair in sorted_pairs:
+            elements.append(Paragraph(f"{pair['doc1']} <b>vs</b> {pair['doc2']} → <font color='#ef4444'>{pair['similarity_percentage']:.1f}%</font>", self.sub_header_style))
+            
+            if pair.get('matches'):
+                elements.append(Paragraph("Matched Text Segments:", self.normal_style))
+                # Show top 5 sentence matches per pair
+                for m in pair['matches'][:5]:
+                    elements.append(Paragraph(f"• {m['sentence1']}", self.match_text_style))
+                    elements.append(Spacer(1, 3))
+            
+            elements.append(Paragraph("<hr color='#f1f5f9' width='50%'/>", self.normal_style))
+            elements.append(Spacer(1, 10))
 
         doc.build(elements)
         buffer.seek(0)
