@@ -1,10 +1,13 @@
 import os
 import sqlite3
 import json
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from core.analyzer import PlagiarismAnalyzer
+from core.report_generator import ReportGenerator
 from pypdf import PdfReader
 import docx
+import io
+from datetime import datetime
 
 DATABASE_PATH = 'database.db'
 
@@ -28,6 +31,7 @@ api_bp = Blueprint('api', __name__)
 # Initialize analyzer
 DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'documents.json')
 analyzer = PlagiarismAnalyzer(DATA_PATH)
+report_gen = ReportGenerator()
 
 @api_bp.route('/analyze', methods=['POST'])
 def analyze_text():
@@ -132,6 +136,33 @@ def multi_check():
     try:
         results = analyzer.compare_documents(documents)
         return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@api_bp.route('/download-report', methods=['POST'])
+def download_report():
+    data = request.json
+    mode = data.get('mode', 'single')
+    
+    try:
+        if mode == 'single':
+            text = data.get('text', '')
+            results = data.get('results', {})
+            pdf_buffer = report_gen.generate_single_report(text, results)
+            filename = f"Plagiarism_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        else:
+            doc_names = data.get('document_names', [])
+            matrix = data.get('matrix', {})
+            pairwise = data.get('pairwise_results', [])
+            pdf_buffer = report_gen.generate_multi_report(doc_names, matrix, pairwise)
+            filename = f"Multi_Compare_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        return send_file(
+            pdf_buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

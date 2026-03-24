@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const multiInputSection = document.getElementById('multiInputSection');
 
     let currentMode = 'single'; // 'single' or 'multi'
+    let lastSingleResults = null;
+    let lastSingleText = '';
+    let lastMultiResults = null;
 
     // Theme logic
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -72,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showError('Please enter some text to analyze.');
                 return;
             }
+            lastSingleText = text;
             performAnalysis(text);
         } else {
             const files = fileInput.files;
@@ -81,6 +85,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             performMultiAnalysis(files);
         }
+    });
+
+    document.getElementById('downloadSingleBtn').addEventListener('click', () => {
+        if (!lastSingleResults) return;
+        downloadPDF('single', { 
+            results: lastSingleResults, 
+            text: lastSingleText 
+        });
+    });
+
+    document.getElementById('downloadMultiBtn').addEventListener('click', () => {
+        if (!lastMultiResults) return;
+        downloadPDF('multi', lastMultiResults);
     });
 
     fileInput.addEventListener('change', async (e) => {
@@ -191,6 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displayResults(data, originalText) {
+        lastSingleResults = data;
         resultsDiv.style.display = 'block';
         
         const pct = data.overall_percentage || 0;
@@ -283,6 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displayMultiResults(data) {
+        lastMultiResults = data;
         resultsDiv.style.display = 'block';
         matrixContainer.innerHTML = '';
         pairwiseList.innerHTML = '';
@@ -473,6 +492,30 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (err) {
             console.error('Failed to load history:', err);
+        }
+    }
+
+    async function downloadPDF(mode, data) {
+        try {
+            const response = await fetch('/api/download-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mode, ...data })
+            });
+
+            if (!response.ok) throw new Error('Failed to generate PDF');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = mode === 'single' ? 'Plagiarism_Report.pdf' : 'Multi_Comparison_Report.pdf';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (err) {
+            showError('PDF Download failed: ' + err.message);
         }
     }
 

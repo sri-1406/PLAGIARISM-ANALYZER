@@ -58,7 +58,10 @@
             <section id="results" class="card" style="display: none;">
                 <div id="singleResults">
                     <div class="result-header">
-                        <h2>Analysis Result</h2>
+                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                            <h2>Analysis Result</h2>
+                            <button id="downloadSingleBtn" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">📥 Download PDF Report</button>
+                        </div>
                         <div class="speedometer-container">
                             <svg class="speedometer-svg" viewBox="0 0 200 110">
                                 <path class="gauge-track" d="M 20,100 A 80,80 0 0,1 180,100" fill="none" stroke="#f1f5f9" stroke-width="14" stroke-linecap="round"/>
@@ -99,7 +102,10 @@
 
                 <div id="multiResults" style="display: none;">
                     <div class="result-summary-header">
-                        <h2>Inter-Document Comparison</h2>
+                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                            <h2>Inter-Document Comparison</h2>
+                            <button id="downloadMultiBtn" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;">📥 Download Multi PDF</button>
+                        </div>
                     </div>
                     <div class="section-results">
                         <h3>Similarity Matrix</h3>
