@@ -13,6 +13,9 @@
     --plagiarized-text: #b91c1c;
     --gauge-bg: #f1f5f9;
     --needle: #1f2937;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
 }
 
 [data-theme="dark"] {
@@ -43,12 +46,44 @@ body {
     transition: background-color 0.3s, color 0.3s;
 }
 
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.mode-toggle {
+    display: flex;
+    background: var(--bg);
+    padding: 0.25rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.btn-toggle {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    background: transparent;
+    color: var(--text-light);
+}
+
+.btn-toggle.active {
+    background: var(--card-bg);
+    color: var(--primary);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
 .header-top {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    max-width: 600px;
-    margin: 0 auto;
+    align-items: flex-start;
+    max-width: 1200px;
+    margin: 0 auto 3rem auto;
 }
 
 .theme-toggle {
@@ -69,9 +104,15 @@ body {
 [data-theme="dark"] .icon-light { display: block; }
 
 header h1 {
-    font-size: 2.5rem;
-    color: var(--primary);
+    font-size: 3rem;
+    font-weight: 800;
     margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.04em;
+    text-shadow: 0 10px 20px rgba(79, 70, 229, 0.1);
 }
 
 .card {
@@ -155,16 +196,17 @@ header h1 {
 .speedometer-container {
     position: relative;
     width: 320px;
-    height: 140px; 
-    margin: 30px 0 100px 0; /* Increased bottom margin significantly */
+    height: 220px; /* Increased to accommodate the text overlay below the arc */
+    margin: 20px auto;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    justify-content: flex-start;
     align-items: center;
 }
 
 .speedometer-svg {
     width: 100%;
-    height: 100%;
+    height: 140px;
 }
 
 .gauge-track {
@@ -216,11 +258,9 @@ header h1 {
 .history-section { border-top: 1px solid var(--border); padding-top: 2rem; }
 
 .gauge-text-overlay {
-    position: absolute;
-    bottom: -90px; /* Moved much lower to clear the needle pivot */
     text-align: center;
     width: 100%;
-    z-index: 5;
+    padding-top: 10px;
 }
 
 .gauge-text-overlay #scoreVal {
@@ -310,4 +350,181 @@ header h1 {
     color: var(--error);
     margin-top: 1rem;
     display: none;
+}
+
+.similarity-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    background: var(--plagiarized-text);
+    color: #ffffff;
+    border-radius: 4px;
+    margin-left: 4px;
+    vertical-align: middle;
+    display: inline-block;
+    line-height: 1.2;
+}
+
+/* Multi-Compare Specific Styles */
+.matrix-container {
+    overflow-x: auto;
+    margin-top: 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+}
+
+.matrix-table th, .matrix-table td {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    text-align: center;
+    min-width: 120px;
+}
+
+.matrix-table th {
+    background: var(--bg);
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+.matrix-table td.high-sim {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+    font-weight: 700;
+}
+
+.pairwise-results {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.pair-card {
+    background: var(--card-bg);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+}
+
+.pair-card.critical {
+    border: 2px solid var(--error);
+    background: rgba(239, 68, 68, 0.02);
+}
+
+.pair-card h4 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.pair-card .score-pill {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.sentence-matches {
+    margin-top: 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+}
+
+.match-pair {
+    background: var(--bg);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.match-pair .label {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-bottom: 4px;
+}
+
+.multi-upload-info {
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg);
+    border-radius: 12px;
+    border: 1px dashed var(--border);
+    margin-bottom: 1.5rem;
+}
+
+.multi-upload-info h3 {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+}
+
+.result-summary-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border);
+}
+
+/* Expandable Container System */
+.expandable-wrapper {
+    position: relative;
+    margin-top: 1rem;
+}
+
+.expandable-container {
+    max-height: 280px;
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out;
+    position: relative;
+}
+
+.expandable-container.expanded {
+    max-height: 5000px; /* Large enough to show all content */
+}
+
+/* Fade effect for collapsed state */
+.expandable-container:not(.expanded)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: linear-gradient(transparent, var(--bg));
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+.expandable-container.expanded::after {
+    opacity: 0;
+}
+
+.read-more-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    justify-content: flex-end;
+    padding: 8px 0;
+    color: var(--primary);
+    background: none;
+    border: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    width: 100%;
+    transition: color 0.2s;
+}
+
+.read-more-btn:hover {
+    color: var(--primary-hover);
 }

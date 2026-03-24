@@ -67,18 +67,9 @@ def get_reports():
 from pypdf import PdfReader
 import docx
 
-@api_bp.route('/upload', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No file selected"}), 400
-    
+def get_text_from_file(file):
     filename = file.filename.lower()
     content = ""
-    
     try:
         if filename.endswith('.txt'):
             content = file.read().decode('utf-8')
@@ -88,18 +79,59 @@ def upload_file():
         elif filename.endswith('.docx'):
             doc = docx.Document(file)
             content = "\n".join([para.text for para in doc.paragraphs])
-        else:
-            return jsonify({"error": "Unsupported file format. Please use .txt, .pdf, or .docx"}), 400
-        
-        if not content.strip():
-            return jsonify({"error": "Could not extract text from the file or file is empty."}), 400
-            
+        return content
+    except Exception as e:
+        print(f"Error extracting text: {e}")
+        return ""
+
+@api_bp.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+    
+    content = get_text_from_file(file)
+    if not content:
+        return jsonify({"error": "Could not extract text or file is unsupported/empty."}), 400
+    
+    try:
         results = analyzer.analyze(content)
-        save_report(content, results) # Persist to DB
+        save_report(content, results)
         return jsonify({
             "text": content,
             "results": results
         })
     except Exception as e:
         return jsonify({"error": f"Failed to process document: {str(e)}"}), 500
+
+@api_bp.route('/multi-check', methods=['POST'])
+def multi_check():
+    if 'files' not in request.files:
+        return jsonify({"error": "No files uploaded"}), 400
+    
+    files = request.files.getlist('files')
+    if not files or (len(files) == 1 and files[0].filename == ''):
+        return jsonify({"error": "At least two files are required for comparison."}), 400
+    
+    documents = []
+    for file in files:
+        if file.filename == '': continue
+        text = get_text_from_file(file)
+        if text.strip():
+            documents.append({
+                "name": file.filename,
+                "content": text
+            })
+    
+    if len(documents) < 2:
+        return jsonify({"error": "Need at least two documents with readable text."}), 400
+    
+    try:
+        results = analyzer.compare_documents(documents)
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
