@@ -528,3 +528,52 @@ header h1 {
 .read-more-btn:hover {
     color: var(--primary-hover);
 }
+
+/* Detailed Sentence Match Table */
+.sentence-match-table-container {
+    margin-top: 1rem;
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.match-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+}
+
+.match-table th, .match-table td {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    text-align: left;
+}
+
+.match-table th {
+    background: var(--bg);
+    font-weight: 600;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.match-table td {
+    font-size: 0.95rem;
+}
+
+.match-table td:first-child {
+    max-width: 400px;
+    font-style: italic;
+    color: var(--text);
+}
+
+.match-table .source-cell {
+    font-weight: 600;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+.match-table .score-cell {
+    font-weight: 700;
+}

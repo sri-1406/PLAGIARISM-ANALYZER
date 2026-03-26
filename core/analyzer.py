@@ -17,13 +17,9 @@ except LookupError:
     nltk.download('stopwords')
 
 class PlagiarismAnalyzer:
-    def __init__(self, dataset_path):
-        try:
-            with open(dataset_path, 'r') as f:
-                self.dataset = json.load(f)
-        except Exception as e:
-            print(f"Error loading dataset: {e}")
-            self.dataset = []
+    def __init__(self, data_root):
+        self.dataset = []
+        self._load_all_datasets(data_root)
         
         try:
             self.stop_words = set(stopwords.words('english'))
@@ -32,6 +28,26 @@ class PlagiarismAnalyzer:
             
         # Use a token pattern that works with preprocessed text
         self.vectorizer = TfidfVectorizer(tokenizer=self.preprocess_text_to_tokens, token_pattern=None)
+
+    def _load_all_datasets(self, data_root):
+        """Recursively find and load all documents.json files in the data directory."""
+        import os
+        if not os.path.exists(data_root):
+            return
+
+        for root, _, files in os.walk(data_root):
+            if 'documents.json' in files:
+                file_path = os.path.join(root, 'documents.json')
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        if isinstance(data, dict):
+                            self.dataset.extend(data.get("documents", []))
+                        elif isinstance(data, list):
+                            self.dataset.extend(data)
+                        print(f"Loaded documents from {file_path}")
+                except Exception as e:
+                    print(f"Error loading {file_path}: {e}")
 
     def preprocess_text_to_tokens(self, text):
         """Tokenize, remove stopwords, and normalize (lowercase)."""
@@ -61,6 +77,7 @@ class PlagiarismAnalyzer:
                 results.append({
                     "id": self.dataset[i]['id'],
                     "title": self.dataset[i]['title'],
+                    "source_url": self.dataset[i].get('source_url', self.dataset[i].get('source', 'N/A')),
                     "score": float(score)
                 })
             
@@ -85,7 +102,11 @@ class PlagiarismAnalyzer:
                 s_clean = s.strip()
                 if s_clean:
                     dataset_sentences.append(s_clean)
-                    sentence_to_doc.append({"title": doc['title'], "id": doc['id']})
+                    sentence_to_doc.append({
+                        "title": doc['title'], 
+                        "id": doc['id'],
+                        "source_url": doc.get('source_url', doc.get('source', 'N/A'))
+                    })
         
         if not dataset_sentences:
             return {"plagiarized_sentences": []}
@@ -114,10 +135,12 @@ class PlagiarismAnalyzer:
                 best_score = float(similarities[best_idx])
                 
                 if best_score >= threshold:
+                    match_info = sentence_to_doc[best_idx]
                     plagiarized_sentences.append({
                         "sentence": input_sent_clean,
                         "match_score": best_score,
-                        "source": sentence_to_doc[best_idx]["title"]
+                        "source": match_info["title"],
+                        "source_url": match_info["source_url"]
                     })
             
             return {"plagiarized_sentences": plagiarized_sentences}

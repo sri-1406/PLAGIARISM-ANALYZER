@@ -138,6 +138,40 @@ class ReportGenerator:
             elements.append(t_matches)
             elements.append(Spacer(1, 30))
 
+        # Detailed Sentence Matching
+        plag_sents = results.get('plagiarized_sentences', [])
+        if plag_sents:
+            elements.append(Paragraph("Detailed Sentence-level Matches", self.header_style))
+            elements.append(Paragraph("The following sentences were identified as having significant similarity with existing sources.", self.normal_style))
+            elements.append(Spacer(1, 10))
+            
+            sent_data = [["Matched Sentence", "Source / URL", "Sim %"]]
+            for s in plag_sents[:30]: # Limit for readability
+                percentage = s['match_score'] * 100
+                source_display = s['source']
+                if s.get('source_url') and s['source_url'] != 'N/A':
+                    source_display = f"{s['source']}\n({s['source_url']})"
+                
+                sent_data.append([
+                    Paragraph(f"<i>\"{s['sentence']}\"</i>", self.match_text_style),
+                    Paragraph(source_display, self.normal_style),
+                    f"{percentage:.1f}%"
+                ])
+            
+            t_sents = Table(sent_data, colWidths=[300, 130, 60])
+            t_sents.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f8fafc')),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#64748b')),
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+                ('PADDING', (0,0), (-1,-1), 8),
+            ]))
+            elements.append(t_sents)
+            if len(plag_sents) > 30:
+                elements.append(Paragraph(f"<i>* Only showing top 30 of {len(plag_sents)} sentences.</i>", self.footer_style))
+            elements.append(Spacer(1, 30))
+
         # Highlighted Content
         elements.append(PageBreak())
         elements.append(Paragraph("Analyzed Document Content", self.header_style))

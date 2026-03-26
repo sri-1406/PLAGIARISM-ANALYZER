@@ -264,27 +264,78 @@ document.addEventListener('DOMContentLoaded', () => {
             data.top_matches.forEach(match => {
                 const li = document.createElement('li');
                 li.className = 'match-item';
+                const link = match.source_url && match.source_url !== 'N/A' ? match.source_url : null;
                 li.innerHTML = `
-                    <span>${match.title}</span>
-                    <strong>${(match.score * 100).toFixed(1)}% match</strong>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-weight: 600; color: var(--text-main);">${match.title}</span>
+                        ${link ? `<a href="${link}" target="_blank" style="color: var(--primary); text-decoration: none; font-size: 0.85rem; margin-top: 4px;">Visit Source ↗</a>` : ''}
+                    </div>
+                    <strong style="font-size: 1.1rem;">${(match.score * 100).toFixed(1)}% match</strong>
                 `;
                 docList.appendChild(li);
             });
         }
 
+        // Detailed Sentence Match Table
+        const sentenceMatchList = document.getElementById('sentenceMatchList');
+        const matches = data.matches || data.plagiarized_sentences || [];
+        
+        if (sentenceMatchList) {
+            sentenceMatchList.innerHTML = '';
+            if (matches.length === 0) {
+                sentenceMatchList.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-light)">No matches found</td></tr>';
+            } else {
+                matches.forEach(item => {
+                    const row = document.createElement('tr');
+                    const sentenceText = item.input || item.sentence || "";
+                    const scoreRaw = item.score !== undefined ? item.score : (item.match_score * 100);
+                    const percentage = parseFloat(scoreRaw).toFixed(1);
+                    
+                    // Prioritize source_url for the actual href, and source (title) for display
+                    const rawLineSource = item.source_url || item.source || "N/A";
+                    const isUrl = rawLineSource && (rawLineSource.startsWith('http') || rawLineSource.startsWith('https'));
+                    const sourceLink = isUrl ? rawLineSource : null;
+                    const displayTitle = item.source || item.title || "Source";
+                    
+                    const color = percentage >= 70 ? 'var(--error)' : (percentage >= 30 ? 'var(--warning)' : 'var(--success)');
+                    
+                    row.innerHTML = `
+                        <td>"${sentenceText}"</td>
+                        <td class="source-cell">
+                            ${sourceLink ? 
+                                `<a href="${sourceLink}" target="_blank" title="${displayTitle}" style="color: var(--primary); text-decoration: none; font-weight: 600;">View Source 🔗</a>` : 
+                                `<span title="Source title: ${displayTitle}">${displayTitle}</span>`}
+                        </td>
+                        <td class="score-cell" style="color: ${color}; font-weight: bold;">${percentage}%</td>
+                    `;
+                    sentenceMatchList.appendChild(row);
+                });
+            }
+        }
+
         // Highlight sentences
         let highlightedHtml = originalText;
         
-        // Sort plagiarized sentences by length (longest first) to avoid partial replacement issues
-        const sortedSents = [...data.plagiarized_sentences].sort((a, b) => b.sentence.length - a.sentence.length);
+        // Sort matches by sentence length to avoid overlapping match issues
+        const sortedSents = [...matches].sort((a, b) => {
+            const textA = a.input || a.sentence || "";
+            const textB = b.input || b.sentence || "";
+            return textB.length - textA.length;
+        });
         
         sortedSents.forEach(item => {
-            const escapedSent = item.sentence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const text = item.input || item.sentence || "";
+            if (!text) return;
+            
+            const escapedSent = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp(escapedSent, 'g');
-            const percentage = (item.match_score * 100).toFixed(1);
+            const scoreRaw = item.score !== undefined ? item.score : (item.match_score * 100);
+            const percentage = parseFloat(scoreRaw).toFixed(1);
+            const title = item.title || item.source || "Plagiarized";
+            
             highlightedHtml = highlightedHtml.replace(
                 regex, 
-                `<span class="plagiarized-sent" title="Source: ${item.source}">${item.sentence} <span class="similarity-pill">${percentage}%</span></span>`
+                `<span class="plagiarized-sent" title="Source: ${title}">${text} <span class="similarity-pill">${percentage}%</span></span>`
             );
         });
 

@@ -29,8 +29,8 @@ def save_report(text, results):
 api_bp = Blueprint('api', __name__)
 
 # Initialize analyzer
-DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'documents.json')
-analyzer = PlagiarismAnalyzer(DATA_PATH)
+DATA_ROOT = os.path.join(os.path.dirname(__file__), '..', 'data')
+analyzer = PlagiarismAnalyzer(DATA_ROOT)
 report_gen = ReportGenerator()
 
 @api_bp.route('/analyze', methods=['POST'])
