@@ -10,6 +10,11 @@ import io
 from datetime import datetime
 
 DATABASE_PATH = 'database.db'
+REPORTS_DIR = os.path.join(os.path.dirname(__file__), '..', 'reports')
+
+# Ensure reports directory exists
+if not os.path.exists(REPORTS_DIR):
+    os.makedirs(REPORTS_DIR)
 
 def save_report(text, results):
     try:
@@ -20,9 +25,12 @@ def save_report(text, results):
             'INSERT INTO reports (text, percentage, results) VALUES (?, ?, ?)',
             (text, pct, json.dumps(results))
         )
+        report_id = cursor.lastrowid
         conn.commit()
+        return report_id
     except Exception as e:
         print(f"DB Error: {e}")
+        return None
     finally:
         conn.close()
 
@@ -43,7 +51,16 @@ def analyze_text():
     
     try:
         results = analyzer.analyze(text)
-        save_report(text, results) # Persist to DB
+        report_id = save_report(text, results) # Persist to DB
+        
+        # Pre-generate PDF report
+        if report_id:
+            pdf_buffer = report_gen.generate_single_report(text, results)
+            report_path = os.path.join(REPORTS_DIR, f"report_{report_id}.pdf")
+            with open(report_path, 'wb') as f:
+                f.write(pdf_buffer.getbuffer())
+            results['report_id'] = report_id
+
         return jsonify(results)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -103,10 +120,19 @@ def upload_file():
     
     try:
         results = analyzer.analyze(content)
-        save_report(content, results)
+        report_id = save_report(content, results)
+        
+        # Pre-generate PDF report
+        if report_id:
+            pdf_buffer = report_gen.generate_single_report(content, results)
+            report_path = os.path.join(REPORTS_DIR, f"report_{report_id}.pdf")
+            with open(report_path, 'wb') as f:
+                f.write(pdf_buffer.getbuffer())
+        
         return jsonify({
             "text": content,
-            "results": results
+            "results": results,
+            "report_id": report_id
         })
     except Exception as e:
         return jsonify({"error": f"Failed to process document: {str(e)}"}), 500
@@ -139,9 +165,36 @@ def multi_check():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@api_bp.route('/download/<int:report_id>', methods=['GET'])
+def download_report_direct(report_id):
+    report_path = os.path.join(REPORTS_DIR, f"report_{report_id}.pdf")
+    
+    if not os.path.exists(report_path):
+        return jsonify({"error": "Report file not found on server."}), 404
+        
+    try:
+        # ULTIMATE HEADER SET: Force the filename and extension at the protocol level
+        filename = f"Plagiarism_Report_{report_id}.pdf"
+        response = send_file(
+            report_path,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+        response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response.headers["Content-Type"] = "application/pdf"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return response
+    except Exception as e:
+        return jsonify({"error": f"Download failed: {str(e)}"}), 500
+
 @api_bp.route('/download-report', methods=['POST'])
-def download_report():
+def download_report_legacy():
+    # Keep legacy POST for multi-compare or backward compatibility if needed
     data = request.json
+    if not data:
+        return jsonify({"error": "Missing request data"}), 400
+        
     mode = data.get('mode', 'single')
     
     try:

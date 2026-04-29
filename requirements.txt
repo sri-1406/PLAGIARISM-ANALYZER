@@ -1,7 +1,9 @@
 flask
-scikit-learn
-nltk
-pandas
-flask-cors
 pypdf
 python-docx
+nltk
+joblib
+scikit-learn
+numpy
+reportlab
+fpdf2

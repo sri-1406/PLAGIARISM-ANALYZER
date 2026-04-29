@@ -64,11 +64,20 @@ def check_plagiarism(input_text):
                     best_match = doc_sentence
 
             # ✅ Apply threshold
-            if best_score > 0.5:
+            if best_score >= 0.4:
+                if best_score >= 0.8:
+                    level = "High Plagiarism"
+                elif best_score >= 0.6:
+                    level = "Moderate Plagiarism"
+                else:
+                    level = "Low Plagiarism"
+                    
                 matches.append({
                     "input": input_sentence,
                     "matched": best_match,
                     "score": round(best_score * 100, 2),
+                    "similarity_percentage": round(best_score * 100, 2),
+                    "plagiarism_level": level,
                     "source": doc.get("source", ""),
                     "title": doc.get("title", "")
                 })
@@ -76,11 +85,26 @@ def check_plagiarism(input_text):
                 total_score += best_score
                 count += 1
 
-    overall_score = (len(matches) / len(input_sentences)) * 100 if input_sentences else 0
+    # Structured Output Calculation
+    total_input_sentences = len(input_sentences)
+    plagiarism_percentage = (count / total_input_sentences) * 100 if total_input_sentences > 0 else 0
+    average_similarity = (total_score / count * 100) if count > 0 else 0
+    
+    # Format sources list
+    sources_list = []
+    for m in matches:
+        sources_list.append({
+            "url": m.get("source", "N/A"), # Assuming source field contains the URL in this script
+            "matched_text": m["input"],
+            "similarity": m["score"]
+        })
 
     return {
-        "plagiarism_score": round(overall_score, 2),
-        "matches": matches
+        "plagiarism_percentage": round(plagiarism_percentage, 2),
+        "average_similarity": round(average_similarity, 2),
+        "matched_sentences": count,
+        "total_sentences": total_input_sentences,
+        "sources": sources_list[:5] # Limit results to top 5 as requested
     }
 
 

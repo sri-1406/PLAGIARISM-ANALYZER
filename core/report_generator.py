@@ -93,10 +93,18 @@ class ReportGenerator:
 
         # Summary Section
         score = results.get('overall_percentage', 0)
+        
+        # Determine overall level for summary
+        if score >= 80: level = "High Plagiarism"
+        elif score >= 60: level = "Moderate Plagiarism"
+        elif score >= 40: level = "Low Plagiarism"
+        else: level = "Negligible / None"
+        
         elements.append(Paragraph("Analysis Summary", self.header_style))
         summary_data = [
             ["Metric", "Value"],
             ["Total Similarity Score", f"{score:.1f}%"],
+            ["Plagiarism Level", level],
             ["Detected Sources", str(len(results.get('top_matches', [])))],
             ["Analysis Status", "Completed ✓"]
         ]
@@ -108,7 +116,8 @@ class ReportGenerator:
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
             ('PADDING', (0,0), (-1,-1), 10),
-            ('TEXTCOLOR', (1,1), (1,1), colors.HexColor('#ef4444') if score > 30 else colors.HexColor('#10b981'))
+            ('TEXTCOLOR', (1,1), (1,1), colors.HexColor('#ef4444') if score >= 40 else colors.HexColor('#10b981')),
+            ('TEXTCOLOR', (1,2), (1,2), colors.HexColor('#ef4444') if score >= 40 else colors.HexColor('#10b981'))
         ]))
         elements.append(t_summary)
         elements.append(Spacer(1, 25))
@@ -117,19 +126,20 @@ class ReportGenerator:
         matches = results.get('top_matches', [])[:15] # Limit to top 15
         if matches:
             elements.append(Paragraph("Identified Sources (Top 15)", self.header_style))
-            match_data = [["No.", "Source Identifier / Preview", "Similarity"]]
+            match_data = [["No.", "Source Identifier", "Match %", "Level"]]
             for i, m in enumerate(matches):
                 match_data.append([
                     str(i+1), 
                     Paragraph(m['title'], self.normal_style), 
-                    f"{(m['score']*100):.1f}%"
+                    f"{(m['score']*100):.1f}%",
+                    m.get('plagiarism_level', 'N/A')
                 ])
             
-            t_matches = Table(match_data, colWidths=[30, 380, 80])
+            t_matches = Table(match_data, colWidths=[30, 310, 70, 80])
             t_matches.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f1f5f9')),
                 ('ALIGN', (0,0), (0,-1), 'CENTER'),
-                ('ALIGN', (2,0), (2,-1), 'CENTER'),
+                ('ALIGN', (2,0), (3,-1), 'CENTER'),
                 ('VALIGN', (0,0), (-1,-1), 'TOP'),
                 ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
                 ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
@@ -145,7 +155,7 @@ class ReportGenerator:
             elements.append(Paragraph("The following sentences were identified as having significant similarity with existing sources.", self.normal_style))
             elements.append(Spacer(1, 10))
             
-            sent_data = [["Matched Sentence", "Source / URL", "Sim %"]]
+            sent_data = [["Matched Sentence", "Source / URL", "Sim %", "Level"]]
             for s in plag_sents[:30]: # Limit for readability
                 percentage = s['match_score'] * 100
                 source_display = s['source']
@@ -155,10 +165,11 @@ class ReportGenerator:
                 sent_data.append([
                     Paragraph(f"<i>\"{s['sentence']}\"</i>", self.match_text_style),
                     Paragraph(source_display, self.normal_style),
-                    f"{percentage:.1f}%"
+                    f"{percentage:.1f}%",
+                    s.get('plagiarism_level', 'N/A')
                 ])
             
-            t_sents = Table(sent_data, colWidths=[300, 130, 60])
+            t_sents = Table(sent_data, colWidths=[260, 130, 45, 55])
             t_sents.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#f8fafc')),
                 ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#64748b')),
@@ -166,6 +177,8 @@ class ReportGenerator:
                 ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
                 ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
                 ('PADDING', (0,0), (-1,-1), 8),
+                ('ALIGN', (2,0), (3,-1), 'CENTER'),
+                ('FONTSIZE', (3,1), (3,-1), 8),
             ]))
             elements.append(t_sents)
             if len(plag_sents) > 30:

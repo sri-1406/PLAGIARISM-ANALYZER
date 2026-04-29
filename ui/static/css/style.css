@@ -321,7 +321,45 @@ header h1 {
 }
 
 .plagiarized-sent:hover {
-    background-color: #fecaca;
+    filter: brightness(0.95);
+}
+
+/* Severity-based Highlighting Colors */
+.hl-red {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border-bottom: 2px solid #ef4444;
+}
+
+.hl-orange {
+    background-color: #ffedd5;
+    color: #9a3412;
+    border-bottom: 2px solid #f97316;
+}
+
+.hl-yellow {
+    background-color: #fef9c3;
+    color: #854d0e;
+    border-bottom: 2px solid #eab308;
+}
+
+/* Dark Theme Overrides for Highlighting */
+[data-theme="dark"] .hl-red {
+    background-color: rgba(69, 10, 10, 0.8);
+    color: #fca5a5;
+    border-bottom-color: #ef4444;
+}
+
+[data-theme="dark"] .hl-orange {
+    background-color: rgba(67, 20, 7, 0.8);
+    color: #fdba74;
+    border-bottom-color: #f97316;
+}
+
+[data-theme="dark"] .hl-yellow {
+    background-color: rgba(66, 32, 6, 0.8);
+    color: #fde047;
+    border-bottom-color: #eab308;
 }
 
 /* Loading indicator */

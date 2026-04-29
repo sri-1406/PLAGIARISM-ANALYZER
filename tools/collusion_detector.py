@@ -73,9 +73,16 @@ def main():
             for j in range(i + 1, len(docs)):
                 score = similarities[i][j]
                 if score >= args.threshold:
+                    if score >= 0.8:
+                        level = "High Plagiarism"
+                    elif score >= 0.6:
+                        level = "Moderate Plagiarism"
+                    else:
+                        level = "Low Plagiarism"
+                        
                     found = True
                     print(f"(!) {docs[i]['filename']} ↔ {docs[j]['filename']}")
-                    print(f"    Similarity: {round(score*100, 2)}%")
+                    print(f"    Similarity: {round(score*100, 2)}% ({level})")
                     print("-" * 30)
 
         if not found:

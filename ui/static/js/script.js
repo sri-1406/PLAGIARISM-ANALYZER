@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("%c --- AI PLAGIARISM ANALYZER v9.99 LOADED --- ", "background: #4f46e5; color: white; font-weight: bold; font-size: 14px; padding: 4px;");
+    
     const textInput = document.getElementById('textInput');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const fileInput = document.getElementById('fileInput');
@@ -27,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastSingleResults = null;
     let lastSingleText = '';
     let lastMultiResults = null;
+    let lastReportId = null;
 
     // Theme logic
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -47,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         singleInputSection.style.display = 'block';
         multiInputSection.style.display = 'none';
         resultsDiv.style.display = 'none';
-        
+
         // Dynamic label text
         uploadLabel.textContent = 'Upload Document';
     });
@@ -59,10 +62,10 @@ document.addEventListener('DOMContentLoaded', () => {
         singleInputSection.style.display = 'none';
         multiInputSection.style.display = 'block';
         resultsDiv.style.display = 'none';
-        
+
         // Dynamic label text
         uploadLabel.textContent = 'Upload Documents';
-        
+
         // Reset file input for clean state
         fileInput.value = '';
         document.getElementById('fileName').textContent = 'No file selected';
@@ -89,9 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('downloadSingleBtn').addEventListener('click', () => {
         if (!lastSingleResults) return;
-        downloadPDF('single', { 
-            results: lastSingleResults, 
-            text: lastSingleText 
+        downloadPDF('single', {
+            results: lastSingleResults,
+            text: lastSingleText
         });
     });
 
@@ -102,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
-        if (!file || currentMode === 'multi') return; 
+        if (!file || currentMode === 'multi') return;
 
         const allowedExtensions = ['.txt', '.pdf', '.docx'];
         const fileName = file.name.toLowerCase();
@@ -132,11 +135,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Just fill the text area so user can see it
             textInput.value = data.text;
-            
+
             // Do NOT call displayResults here. 
             // We just want to prepare the text for the user to click "Analyze" manually.
-            resultsDiv.style.display = 'none'; 
-            
+            resultsDiv.style.display = 'none';
+
         } catch (err) {
             showError(err.message);
         } finally {
@@ -150,12 +153,12 @@ document.addEventListener('DOMContentLoaded', () => {
         singleResults.style.display = 'block';
         multiResults.style.display = 'none';
         errorDiv.style.display = 'none';
-        
+
         // RESET needle and gauge to zero instantly before sweep
         const needleGroup = document.getElementById('needleGroup');
         const gaugeProgress = document.getElementById('gaugeProgress');
         const scoreValElement = document.getElementById('scoreVal');
-        
+
         if (needleGroup) needleGroup.setAttribute('transform', 'rotate(-90 100 100)');
         if (gaugeProgress) gaugeProgress.style.strokeDashoffset = '251.3';
         if (scoreValElement) scoreValElement.textContent = '0.0%';
@@ -209,37 +212,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function displayResults(data, originalText) {
         lastSingleResults = data;
+        lastReportId = data.report_id;
         resultsDiv.style.display = 'block';
-        
+
         const pct = data.overall_percentage || 0;
-        
+
         // Select SVG components
         const scoreValElement = document.getElementById('scoreVal');
         const needleGroup = document.getElementById('needleGroup');
         const gaugeProgress = document.getElementById('gaugeProgress');
-        
+
         // Arc tracking
         const circumference = 251.3;
         const offset = circumference - (pct / 100) * circumference;
         gaugeProgress.style.strokeDashoffset = offset;
-        
+
         // Number counting
         let currentCount = 0;
         const duration = 1500;
         const startTime = Date.now();
-        
+
         const updateCounter = () => {
             const now = Date.now();
             const elapsed = now - startTime;
             const progress = Math.min(elapsed / duration, 1);
             const easedProgress = 1 - Math.pow(1 - progress, 3);
             currentCount = (pct * easedProgress).toFixed(1);
-            
+
             scoreValElement.textContent = `${currentCount}%`;
-            
+
             // Incrementally move needle along with the number
             moveNeedle(parseFloat(currentCount));
-            
+
             if (progress < 1) requestAnimationFrame(updateCounter);
             else {
                 scoreValElement.textContent = `${pct.toFixed(1)}%`;
@@ -247,14 +251,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
         requestAnimationFrame(updateCounter);
-        
+
         // Use the new functional needle move function
         moveNeedle(pct);
-        
-        // Match final colors to the new 3-zone boundaries (0-30%, 30-70%, 70-100%)
-        if (pct < 30) scoreValElement.style.color = '#10b981';
-        else if (pct < 70) scoreValElement.style.color = '#f59e0b';
-        else scoreValElement.style.color = '#ef4444';
+
+        // Match final colors to the new level boundaries (40, 60, 80)
+        if (pct < 40) scoreValElement.style.color = 'var(--success)';
+        else if (pct < 70) scoreValElement.style.color = 'var(--warning)';
+        else scoreValElement.style.color = 'var(--error)';
 
         // Update matched documents
         docList.innerHTML = '';
@@ -265,12 +269,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const li = document.createElement('li');
                 li.className = 'match-item';
                 const link = match.source_url && match.source_url !== 'N/A' ? match.source_url : null;
+                const scoreColor = match.score >= 0.8 ? 'var(--error)' : (match.score >= 0.4 ? 'var(--warning)' : 'var(--success)');
+
                 li.innerHTML = `
                     <div style="display: flex; flex-direction: column;">
                         <span style="font-weight: 600; color: var(--text-main);">${match.title}</span>
                         ${link ? `<a href="${link}" target="_blank" style="color: var(--primary); text-decoration: none; font-size: 0.85rem; margin-top: 4px;">Visit Source ↗</a>` : ''}
                     </div>
-                    <strong style="font-size: 1.1rem;">${(match.score * 100).toFixed(1)}% match</strong>
+                    <div style="text-align: right;">
+                        <strong style="font-size: 1.1rem; color: ${scoreColor};">${(match.score * 100).toFixed(1)}% match</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px;">${match.plagiarism_level}</div>
+                    </div>
                 `;
                 docList.appendChild(li);
             });
@@ -279,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Detailed Sentence Match Table
         const sentenceMatchList = document.getElementById('sentenceMatchList');
         const matches = data.matches || data.plagiarized_sentences || [];
-        
+
         if (sentenceMatchList) {
             sentenceMatchList.innerHTML = '';
             if (matches.length === 0) {
@@ -290,57 +299,60 @@ document.addEventListener('DOMContentLoaded', () => {
                     const sentenceText = item.input || item.sentence || "";
                     const scoreRaw = item.score !== undefined ? item.score : (item.match_score * 100);
                     const percentage = parseFloat(scoreRaw).toFixed(1);
-                    
+
                     // Prioritize source_url for the actual href, and source (title) for display
                     const rawLineSource = item.source_url || item.source || "N/A";
                     const isUrl = rawLineSource && (rawLineSource.startsWith('http') || rawLineSource.startsWith('https'));
                     const sourceLink = isUrl ? rawLineSource : null;
                     const displayTitle = item.source || item.title || "Source";
-                    
-                    const color = percentage >= 70 ? 'var(--error)' : (percentage >= 30 ? 'var(--warning)' : 'var(--success)');
-                    
+
+                    const color = percentage >= 80 ? 'var(--error)' : (percentage >= 40 ? 'var(--warning)' : 'var(--success)');
+                    const level = item.plagiarism_level || (percentage >= 80 ? "High" : (percentage >= 60 ? "Moderate" : (percentage >= 40 ? "Low" : "Negligible")));
+
                     row.innerHTML = `
                         <td>"${sentenceText}"</td>
                         <td class="source-cell">
-                            ${sourceLink ? 
-                                `<a href="${sourceLink}" target="_blank" title="${displayTitle}" style="color: var(--primary); text-decoration: none; font-weight: 600;">View Source 🔗</a>` : 
-                                `<span title="Source title: ${displayTitle}">${displayTitle}</span>`}
+                            ${sourceLink ?
+                            `<a href="${sourceLink}" target="_blank" title="${displayTitle}" style="color: var(--primary); text-decoration: none; font-weight: 600;">View Source 🔗</a>` :
+                            `<span title="Source title: ${displayTitle}">${displayTitle}</span>`}
                         </td>
                         <td class="score-cell" style="color: ${color}; font-weight: bold;">${percentage}%</td>
+                        <td class="level-cell" style="font-size: 0.8rem; font-weight: 600; color: ${color}">${level}</td>
                     `;
                     sentenceMatchList.appendChild(row);
                 });
             }
         }
-
-        // Highlight sentences
+        // Integrated Visual Highlighting by Criticality (70/40/10)
         let highlightedHtml = originalText;
-        
-        // Sort matches by sentence length to avoid overlapping match issues
-        const sortedSents = [...matches].sort((a, b) => {
-            const textA = a.input || a.sentence || "";
-            const textB = b.input || b.sentence || "";
-            return textB.length - textA.length;
-        });
-        
-        sortedSents.forEach(item => {
-            const text = item.input || item.sentence || "";
+        const allHighlights = data.highlighted_matches || [];
+
+        // Longest match first to avoid inner-sentence corruption
+        const sortedRef = [...allHighlights].sort((a, b) => b.sentence.length - a.sentence.length);
+
+        sortedRef.forEach(item => {
+            const text = item.sentence;
             if (!text) return;
-            
+
+            const percentage = item.similarity_percentage;
+
+            // Assign CSS class based on criticality
+            let hlClass = "hl-yellow"; // default 10-40%
+            if (percentage >= 70) hlClass = "hl-red";
+            else if (percentage >= 40) hlClass = "hl-orange";
+
             const escapedSent = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp(escapedSent, 'g');
-            const scoreRaw = item.score !== undefined ? item.score : (item.match_score * 100);
-            const percentage = parseFloat(scoreRaw).toFixed(1);
-            const title = item.title || item.source || "Plagiarized";
-            
+            const title = item.source || "Matched Source";
+
             highlightedHtml = highlightedHtml.replace(
-                regex, 
-                `<span class="plagiarized-sent" title="Source: ${title}">${text} <span class="similarity-pill">${percentage}%</span></span>`
+                regex,
+                `<span class="plagiarized-sent ${hlClass}" title="Source: ${title} (${percentage}%)">${text} <span class="similarity-pill">${percentage}%</span></span>`
             );
         });
 
         highlightedBox.innerHTML = highlightedHtml;
-        
+
         // Wrap with expandable if it's too long
         wrapWithExpandable(highlightedBox);
 
@@ -360,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Render Matrix
         const table = document.createElement('table');
         table.className = 'matrix-table';
-        
+
         // Header
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
@@ -391,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
             data.pairwise_results.forEach(pair => {
                 const card = document.createElement('div');
                 card.className = `pair-card ${pair.similarity_percentage >= 70 ? 'critical' : ''}`;
-                
+
                 const scoreColor = pair.similarity_percentage >= 70 ? '#ef4444' : (pair.similarity_percentage >= 30 ? '#f59e0b' : '#10b981');
 
                 card.innerHTML = `
@@ -426,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         matchBox.appendChild(moreBtn);
                     }
                     card.appendChild(matchBox);
-                    
+
                     // Wrap with expandable for long match cards
                     wrapWithExpandable(matchBox);
                 }
@@ -453,11 +465,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Create wrapper
             const wrapper = document.createElement('div');
             wrapper.className = 'expandable-wrapper';
-            
+
             // Create container
             const container = document.createElement('div');
             container.className = 'expandable-container';
-            
+
             // Move target into container
             target.parentNode.insertBefore(wrapper, target);
             wrapper.appendChild(container);
@@ -467,17 +479,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.createElement('button');
             btn.className = 'read-more-btn';
             btn.innerHTML = 'Read More ↓';
-            
+
             btn.onclick = () => {
                 const isExpanded = container.classList.toggle('expanded');
                 btn.innerHTML = isExpanded ? 'Read Less ↑' : 'Read More ↓';
-                
+
                 // If collapsing, scroll to top of section
                 if (!isExpanded) {
                     wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             };
-            
+
             wrapper.appendChild(btn);
         }, 100);
     }
@@ -513,12 +525,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadHistory() {
         const historyList = document.getElementById('historyList');
-        if(!historyList) return;
+        if (!historyList) return;
 
         try {
             const response = await fetch('/api/reports');
             const data = await response.json();
-            
+
             historyList.innerHTML = '';
             if (data.length === 0) {
                 historyList.innerHTML = '<p style="color:var(--text-light)">No analysis history yet.</p>';
@@ -529,11 +541,11 @@ document.addEventListener('DOMContentLoaded', () => {
             data.slice(0, 10).forEach(report => {
                 const card = document.createElement('div');
                 card.className = 'history-card';
-                
+
                 let textColor = '#10b981';
-                if(report.percentage >= 70) textColor = '#ef4444';
-                else if(report.percentage >= 30) textColor = '#f59e0b';
-                
+                if (report.percentage >= 70) textColor = '#ef4444';
+                else if (report.percentage >= 30) textColor = '#f59e0b';
+
                 card.innerHTML = `
                     <span class="date">${new Date(report.timestamp).toLocaleDateString()}</span>
                     <p class="preview">${report.preview}</p>
@@ -547,24 +559,43 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function downloadPDF(mode, data) {
+        if (mode === 'single' && lastReportId) {
+            // Direct Browser Handover (Most Robust for GET)
+            // This lets the browser's native download manager handle the file, 
+            // filename, and association automatically.
+            window.location.assign(`/api/download/${lastReportId}`);
+            return;
+        }
+
         try {
+            // Fallback to Blob for Multi-Compare or missing IDs (requires POST)
             const response = await fetch('/api/download-report', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ mode, ...data })
             });
 
-            if (!response.ok) throw new Error('Failed to generate PDF');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Failed to download report');
+            }
 
             const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
+            const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+            const downloadUrl = window.URL.createObjectURL(pdfBlob);
+
             const a = document.createElement('a');
-            a.href = url;
-            a.download = mode === 'single' ? 'Plagiarism_Report.pdf' : 'Multi_Comparison_Report.pdf';
+            a.style.display = 'none';
+            a.href = downloadUrl;
+            a.download = mode === 'single' ? `Plagiarism_Report_${lastReportId || 'Result'}.pdf` : 'Multi_Comparison_Report.pdf';
+
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+
+            setTimeout(() => {
+                window.URL.revokeObjectURL(downloadUrl);
+                document.body.removeChild(a);
+            }, 2000);
         } catch (err) {
             showError('PDF Download failed: ' + err.message);
         }
