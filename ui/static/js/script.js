@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log("%c --- AI PLAGIARISM ANALYZER v9.99 LOADED --- ", "background: #4f46e5; color: white; font-weight: bold; font-size: 14px; padding: 4px;");
-    
+
     const textInput = document.getElementById('textInput');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const fileInput = document.getElementById('fileInput');
@@ -42,6 +42,97 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('theme', newTheme);
     });
 
+    const fileListContainer = document.getElementById('fileListContainer');
+    let selectedFilesStore = []; // Holds selected File objects
+
+    function getFileIcon(filename) {
+        const lower = filename.toLowerCase();
+        if (lower.endsWith('.pdf')) return '📕';
+        if (lower.endsWith('.docx') || lower.endsWith('.doc')) return '📘';
+        if (lower.endsWith('.txt')) return '📄';
+        return '📜';
+    }
+
+    function formatFileSize(bytes) {
+        if (!bytes) return '';
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function renderFileList() {
+        if (!fileListContainer) return;
+
+        if (selectedFilesStore.length === 0) {
+            fileListContainer.classList.remove('has-files');
+            fileListContainer.innerHTML = '<span class="no-files-placeholder">No files selected</span>';
+            return;
+        }
+
+        fileListContainer.classList.add('has-files');
+        const labelText = currentMode === 'single' ? 'Selected File:' : `Selected Files (${selectedFilesStore.length}):`;
+
+        let html = `
+            <div class="selected-files-header">
+                <span class="files-count-label">${labelText}</span>
+                <button type="button" class="clear-files-btn" id="clearAllFilesBtn">Clear All</button>
+            </div>
+            <div class="selected-files-chips">
+        `;
+
+        selectedFilesStore.forEach((file, index) => {
+            const icon = getFileIcon(file.name);
+            const sizeStr = formatFileSize(file.size);
+            html += `
+                <div class="file-chip">
+                    <span class="chip-icon">${icon}</span>
+                    <span class="chip-name" title="${file.name}">${file.name}</span>
+                    <span class="chip-size">${sizeStr}</span>
+                    <button type="button" class="chip-remove" data-index="${index}" title="Remove ${file.name}">×</button>
+                </div>
+            `;
+        });
+
+        html += `</div>`;
+        fileListContainer.innerHTML = html;
+
+        fileListContainer.querySelectorAll('.chip-remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+                removeFileAt(idx);
+            });
+        });
+
+        const clearBtn = document.getElementById('clearAllFilesBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                clearAllFiles();
+            });
+        }
+    }
+
+    function removeFileAt(index) {
+        selectedFilesStore.splice(index, 1);
+        syncFileInput();
+        renderFileList();
+    }
+
+    function clearAllFiles() {
+        selectedFilesStore = [];
+        fileInput.value = '';
+        renderFileList();
+    }
+
+    function syncFileInput() {
+        try {
+            const dt = new DataTransfer();
+            selectedFilesStore.forEach(f => dt.items.add(f));
+            fileInput.files = dt.files;
+        } catch (e) {
+            console.log("DataTransfer sync fallback", e);
+        }
+    }
+
     // Mode Toggle Logic
     singleModeBtn.addEventListener('click', () => {
         currentMode = 'single';
@@ -51,8 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
         multiInputSection.style.display = 'none';
         resultsDiv.style.display = 'none';
 
-        // Dynamic label text
         uploadLabel.textContent = 'Upload Document';
+        clearAllFiles();
     });
 
     multiModeBtn.addEventListener('click', () => {
@@ -63,30 +154,25 @@ document.addEventListener('DOMContentLoaded', () => {
         multiInputSection.style.display = 'block';
         resultsDiv.style.display = 'none';
 
-        // Dynamic label text
         uploadLabel.textContent = 'Upload Documents';
-
-        // Reset file input for clean state
-        fileInput.value = '';
-        document.getElementById('fileName').textContent = 'No file selected';
+        clearAllFiles();
     });
 
     analyzeBtn.addEventListener('click', async () => {
         if (currentMode === 'single') {
             const text = textInput.value.trim();
             if (!text) {
-                showError('Please enter some text to analyze.');
+                showError('Please enter some text to analyze or upload a document.');
                 return;
             }
             lastSingleText = text;
             performAnalysis(text);
         } else {
-            const files = fileInput.files;
-            if (files.length < 2) {
+            if (selectedFilesStore.length < 2) {
                 showError('Please select at least two files for cross-comparison.');
                 return;
             }
-            performMultiAnalysis(files);
+            performMultiAnalysis(selectedFilesStore);
         }
     });
 
@@ -104,46 +190,66 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file || currentMode === 'multi') return;
+        const files = Array.from(e.target.files);
+        if (!files || files.length === 0) return;
 
         const allowedExtensions = ['.txt', '.pdf', '.docx'];
-        const fileName = file.name.toLowerCase();
-        const isValid = allowedExtensions.some(ext => fileName.endsWith(ext));
 
-        if (!isValid) {
-            showError('Unsupported file format. Please use .txt, .pdf, or .docx');
-            return;
-        }
+        if (currentMode === 'single') {
+            const file = files[0];
+            const fileName = file.name.toLowerCase();
+            const isValid = allowedExtensions.some(ext => fileName.endsWith(ext));
 
+            if (!isValid) {
+                showError('Unsupported file format. Please use .txt, .pdf, or .docx');
+                return;
+            }
 
-        const formData = new FormData();
-        formData.append('file', file);
+            selectedFilesStore = [file];
+            renderFileList();
 
-        showLoader(true);
-        resultsDiv.style.display = 'none';
-        errorDiv.style.display = 'none';
+            const formData = new FormData();
+            formData.append('file', file);
 
-        try {
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
+            showLoader(true);
+            resultsDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                textInput.value = data.text;
+                resultsDiv.style.display = 'none';
+
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                showLoader(false);
+            }
+        } else {
+            const validFiles = files.filter(f => {
+                const name = f.name.toLowerCase();
+                return allowedExtensions.some(ext => name.endsWith(ext));
             });
 
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
+            if (validFiles.length < files.length) {
+                showError('Some files were skipped due to unsupported format. Only .txt, .pdf, and .docx are supported.');
+            }
 
-            // Just fill the text area so user can see it
-            textInput.value = data.text;
+            validFiles.forEach(f => {
+                if (!selectedFilesStore.some(existing => existing.name === f.name && existing.size === f.size)) {
+                    selectedFilesStore.push(f);
+                }
+            });
 
-            // Do NOT call displayResults here. 
-            // We just want to prepare the text for the user to click "Analyze" manually.
-            resultsDiv.style.display = 'none';
-
-        } catch (err) {
-            showError(err.message);
-        } finally {
-            showLoader(false);
+            syncFileInput();
+            renderFileList();
         }
     });
 
@@ -224,10 +330,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Arc tracking
         const circumference = 251.3;
-        const offset = circumference - (pct / 100) * circumference;
-        gaugeProgress.style.strokeDashoffset = offset;
 
-        // Number counting
+        // Reset elements to 0 at the start of display
+        moveNeedle(0);
+        if (gaugeProgress) gaugeProgress.style.strokeDashoffset = circumference;
+
+        // Number counting and gauge animation
         let currentCount = 0;
         const duration = 1500;
         const startTime = Date.now();
@@ -241,19 +349,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             scoreValElement.textContent = `${currentCount}%`;
 
-            // Incrementally move needle along with the number
+            // Incrementally move needle along with the number animation
             moveNeedle(parseFloat(currentCount));
+
+            // Incrementally update gauge progress along with the number animation
+            if (gaugeProgress) {
+                const currentOffset = circumference - (parseFloat(currentCount) / 100) * circumference;
+                gaugeProgress.style.strokeDashoffset = currentOffset;
+            }
 
             if (progress < 1) requestAnimationFrame(updateCounter);
             else {
                 scoreValElement.textContent = `${pct.toFixed(1)}%`;
                 moveNeedle(pct); // Ensure final position is exact
+                if (gaugeProgress) {
+                    const finalOffset = circumference - (pct / 100) * circumference;
+                    gaugeProgress.style.strokeDashoffset = finalOffset;
+                }
             }
         };
         requestAnimationFrame(updateCounter);
-
-        // Use the new functional needle move function
-        moveNeedle(pct);
 
         // Match final colors to the new level boundaries (40, 60, 80)
         if (pct < 40) scoreValElement.style.color = 'var(--success)';

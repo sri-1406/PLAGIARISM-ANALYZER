@@ -178,6 +178,137 @@ header h1 {
     cursor: not-allowed;
 }
 
+/* Selected File List & Chips Styling */
+.selected-files-container {
+    margin-top: 1.25rem;
+    padding: 0.85rem 1.1rem;
+    background-color: var(--bg);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.selected-files-container.has-files {
+    border-style: solid;
+    border-color: rgba(79, 70, 229, 0.4);
+}
+
+.selected-files-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+}
+
+.files-count-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.clear-files-btn {
+    background: transparent;
+    border: none;
+    color: var(--error);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.clear-files-btn:hover {
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.selected-files-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.file-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.4rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+    animation: fadeInChip 0.2s ease-out;
+}
+
+.file-chip:hover {
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(79, 70, 229, 0.12);
+}
+
+.chip-icon {
+    font-size: 0.95rem;
+}
+
+.chip-name {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chip-size {
+    font-size: 0.75rem;
+    color: var(--text-light);
+}
+
+.chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text-light);
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    margin-left: 0.2rem;
+}
+
+.chip-remove:hover {
+    background: var(--error);
+    color: white;
+}
+
+.no-files-placeholder {
+    color: var(--text-light);
+    font-size: 0.85rem;
+    font-style: italic;
+    display: block;
+}
+
+@keyframes fadeInChip {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 /* Results section */
 #results {
     display: none;

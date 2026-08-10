@@ -43,10 +43,14 @@
                     <div class="file-upload">
                         <label for="fileInput" id="uploadLabel" class="btn btn-primary">Upload Document</label>
                         <input type="file" id="fileInput" accept=".txt,.pdf,.docx" style="display: none;" multiple>
-                        <span id="fileName" style="color: var(--text-light); font-size: 0.9rem;">No file selected</span>
+                        <span id="fileName" style="color: var(--text-light); font-size: 0.9rem; display: none;">No file selected</span>
                     </div>
 
                     <button id="analyzeBtn" class="btn btn-primary">Analyze</button>
+                </div>
+
+                <div id="fileListContainer" class="selected-files-container">
+                    <span class="no-files-placeholder">No files selected</span>
                 </div>
 
                 <div id="loader" class="loader">
@@ -153,20 +157,7 @@
         </main>
     </div>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}?v=9.99"></script>
-    <script>
-        // Update filename(s) on UI
-        document.getElementById('fileInput').addEventListener('change', (e) => {
-            const files = e.target.files;
-            let name = 'No file selected';
-            if (files.length === 1) {
-                name = files[0].name;
-            } else if (files.length > 1) {
-                name = `${files.length} files selected`;
-            }
-            document.getElementById('fileName').textContent = name;
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}?v=11.00"></script>
 </body>
 
 </html>

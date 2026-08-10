@@ -18,6 +18,11 @@ try:
 except LookupError:
     nltk.download('stopwords')
 
+try:
+    ENGLISH_STOPWORDS = set(stopwords.words('english'))
+except:
+    ENGLISH_STOPWORDS = set()
+
 def preprocess_text_to_tokens(text):
     """Tokenize, remove stopwords, and normalize (lowercase)."""
     if not text:
@@ -27,11 +32,7 @@ def preprocess_text_to_tokens(text):
     text = re.sub(r'[^a-zA-Z\s]', ' ', text)
     tokens = word_tokenize(text)
     # Filter stopwords and short tokens
-    try:
-        stop_words = set(stopwords.words('english'))
-    except:
-        stop_words = set()
-    return [t for t in tokens if t not in stop_words and len(t) > 1]
+    return [t for t in tokens if t not in ENGLISH_STOPWORDS and len(t) > 1]
 
 class PlagiarismAnalyzer:
     def __init__(self, data_root):
@@ -186,12 +187,15 @@ class PlagiarismAnalyzer:
             
             best_matches_per_sentence = {}
 
+            # Perform vectorized matrix multiplication for cosine similarities in a single call
+            all_similarities = cosine_similarity(input_vectors, dataset_vectors)
+            best_indices = all_similarities.argmax(axis=1)
+            best_scores = all_similarities.max(axis=1)
+
             for i in range(len(input_texts)):
-                similarities = cosine_similarity(input_vectors[i], dataset_vectors)[0]
-                best_idx = similarities.argmax()
-                best_score = float(similarities[best_idx])
-                
+                best_score = float(best_scores[i])
                 if best_score >= highlight_threshold:
+                    best_idx = int(best_indices[i])
                     match_info = unit_to_doc[best_idx]
                     if i >= len(input_sentences):
                         window = input_windows[i - len(input_sentences)]
@@ -340,14 +344,17 @@ class PlagiarismAnalyzer:
             tfidf = temp_vectorizer.fit_transform(sents1 + sents2)
             vecs1 = tfidf[:len(sents1)]
             vecs2 = tfidf[len(sents1):]
+            all_similarities = cosine_similarity(vecs1, vecs2)
+            best_indices = all_similarities.argmax(axis=1)
+            best_scores = all_similarities.max(axis=1)
+            
             matches = []
             for i, s1 in enumerate(sents1):
                 s1_clean = s1.strip()
                 if not s1_clean: continue
-                sims = cosine_similarity(vecs1[i], vecs2)[0]
-                best_idx = sims.argmax()
-                best_score = float(sims[best_idx])
+                best_score = float(best_scores[i])
                 if best_score >= threshold:
+                    best_idx = int(best_indices[i])
                     level = "High Plagiarism" if best_score >= 0.8 else "Moderate Plagiarism" if best_score >= 0.6 else "Low Plagiarism"
                     matches.append({
                         "sentence1": s1_clean, "sentence2": sents2[best_idx].strip(),
