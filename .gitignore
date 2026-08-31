@@ -26,5 +26,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv_new/
+*.log
 reports/*
 !reports/.gitkeep
