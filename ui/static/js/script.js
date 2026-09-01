@@ -225,11 +225,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 textInput.value = data.text;
                 singleModeBtn.click(); // Ensure single mode view is open
                 
-                // Show temporary success alert
+                // Show status or low-confidence warning badge
                 const statusInfo = document.createElement('div');
                 statusInfo.className = 'ocr-success-badge';
-                statusInfo.style.cssText = 'background: #dcfce7; color: #15803d; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.5rem; font-weight: 500; font-size: 0.9rem;';
-                statusInfo.innerHTML = `✓ Successfully extracted handwriting text (${data.confidence}% confidence via ${data.method}). You can now click <strong>Analyze</strong>.`;
+                
+                if (data.low_confidence_warning || data.confidence < 55) {
+                    statusInfo.style.cssText = 'background: #fef3c7; color: #92400e; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.5rem; font-weight: 500; font-size: 0.9rem; border: 1px solid #fde68a;';
+                    statusInfo.innerHTML = `⚠️ <strong>Handwriting recognition needs review</strong> (${data.confidence}% confidence via ${data.method}). Extracted text is editable below for manual review before clicking <strong>Analyze</strong>.`;
+                } else {
+                    statusInfo.style.cssText = 'background: #dcfce7; color: #15803d; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.5rem; font-weight: 500; font-size: 0.9rem; border: 1px solid #bbf7d0;';
+                    statusInfo.innerHTML = `✓ Extracted handwritten text (${data.confidence}% confidence via ${data.method}). You can now click <strong>Analyze</strong>.`;
+                }
                 
                 const existingBadge = document.querySelector('.ocr-success-badge');
                 if (existingBadge) existingBadge.remove();

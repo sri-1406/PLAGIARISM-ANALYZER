@@ -8,6 +8,10 @@ numpy
 reportlab
 fpdf2
 pillow
-easyocr
+transformers
+torch
+torchvision
+sentencepiece
+tiktoken
 opencv-python-headless
 pytesseract
