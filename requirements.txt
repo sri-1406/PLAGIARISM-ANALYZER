@@ -7,3 +7,7 @@ scikit-learn
 numpy
 reportlab
 fpdf2
+pillow
+easyocr
+opencv-python-headless
+pytesseract

@@ -1,12 +1,13 @@
 # Plagiarism Analyzer (ChartGPT)
 
-A sophisticated plagiarism detection tool designed to analyze documents, compare multiple files, and detect collusion using advanced NLP techniques.
+A sophisticated plagiarism detection tool designed to analyze documents, compare multiple files, extract handwritten text from images via OCR, and detect collusion using advanced NLP techniques.
 
 ![Plagiarism Analyzer UI](ui/static/screenshot.png)
 
 ## 🚀 Features
 
 - **Single Document Analysis**: Paste text or upload a document to check for plagiarism against an indexed dataset.
+- **Handwritten Text OCR**: Extract handwritten and printed text directly from image uploads (`.png`, `.jpg`, `.jpeg`, `.bmp`, `.tiff`, `.webp`) using deep learning OCR.
 - **Multi-Compare**: Compare multiple documents simultaneously to identify similarities between them.
 - **Collusion Detection**: Specialized algorithms to detect potential collusion between different authors.
 - **Dynamic UI**: A modern, responsive interface with Dark Mode support and real-time analysis feedback.
@@ -16,10 +17,11 @@ A sophisticated plagiarism detection tool designed to analyze documents, compare
 ## 🛠️ Technology Stack
 
 - **Backend**: Python 3.x, Flask
+- **OCR Engine**: EasyOCR, OpenCV (Image Preprocessing & Contrast Enhancement), PyTesseract
 - **Frontend**: HTML5, Vanilla CSS3, JavaScript (ES6+)
 - **Database**: SQLite3
 - **Data Science**: Scikit-learn, NumPy, NLTK
-- **File Handling**: PyPDF2, python-docx
+- **File Handling**: PyPDF2, python-docx, Pillow
 - **Reporting**: ReportLab, FPDF2
 
 ## 📦 Installation
@@ -58,18 +60,23 @@ A sophisticated plagiarism detection tool designed to analyze documents, compare
 2. **Access the Web UI**:
    Open your browser and navigate to `http://127.0.0.1:5000`.
 
-3. **Analyze Documents**:
-   - Paste text or upload `.pdf`, `.docx`, or `.txt` files.
+3. **Analyze Documents & Handwritten Images**:
+   - Paste text or upload `.pdf`, `.docx`, `.txt`, or image files (`.png`, `.jpg`, `.jpeg`, etc.).
+   - Use the **📷 Handwriting OCR** button to extract text from handwritten notes directly into the editor.
    - Click "Analyze" to see similarity scores and highlighted matches.
 
 ## 📁 Project Structure
 
 - `app.py`: Main entry point and Flask configuration.
-- `core/`: Core logic including the analyzer, indexer, and checker.
-- `api/`: REST API endpoints for frontend-backend communication.
+- `core/`: Core logic including analyzer, indexer, report generator, and `ocr.py` handwriting engine.
+- `api/`: REST API endpoints (`/api/analyze`, `/api/upload`, `/api/ocr`, `/api/multi-check`).
 - `ui/`: Frontend templates (HTML) and static assets (CSS/JS).
 - `data/`: Directory for storing reference documents.
 - `reports/`: Generated plagiarism reports.
+
+## 👥 Contributors
+
+- **BINDU C S** ([@just-da-way-im](https://github.com/just-da-way-im)) - Contributor & Developer
 
 ## 🤝 Contributing
 

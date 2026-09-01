@@ -41,8 +41,10 @@
 
                 <div class="actions">
                     <div class="file-upload">
-                        <label for="fileInput" id="uploadLabel" class="btn btn-primary">Upload Document</label>
-                        <input type="file" id="fileInput" accept=".txt,.pdf,.docx" style="display: none;" multiple>
+                        <label for="fileInput" id="uploadLabel" class="btn btn-primary">Upload Document / Image</label>
+                        <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.png,.jpg,.jpeg,.bmp,.tiff,.webp" style="display: none;" multiple>
+                        <input type="file" id="ocrFileInput" accept=".png,.jpg,.jpeg,.bmp,.tiff,.webp" style="display: none;">
+                        <button type="button" id="ocrBtn" class="btn btn-secondary" title="Extract text from handwritten document images">📷 Handwriting OCR</button>
                         <span id="fileName" style="color: var(--text-light); font-size: 0.9rem; display: none;">No file selected</span>
                     </div>
 

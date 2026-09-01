@@ -87,6 +87,9 @@ def get_reports():
 
 from pypdf import PdfReader
 import docx
+from core.ocr import extract_handwritten_text
+
+IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp')
 
 def get_text_from_file(file):
     filename = file.filename.lower()
@@ -100,10 +103,35 @@ def get_text_from_file(file):
         elif filename.endswith('.docx'):
             doc = docx.Document(file)
             content = "\n".join([para.text for para in doc.paragraphs])
+        elif filename.endswith(IMAGE_EXTENSIONS):
+            ocr_res = extract_handwritten_text(file)
+            content = ocr_res.get('text', '')
         return content
     except Exception as e:
         print(f"Error extracting text: {e}")
         return ""
+
+@api_bp.route('/ocr', methods=['POST'])
+def process_ocr():
+    """Standalone OCR endpoint to extract handwritten text from an image."""
+    if 'file' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+        
+    filename = file.filename.lower()
+    if not filename.endswith(IMAGE_EXTENSIONS):
+        return jsonify({"error": "Unsupported image format. Please upload PNG, JPG, JPEG, BMP, WEBP, or TIFF."}), 400
+
+    try:
+        res = extract_handwritten_text(file)
+        if not res.get('text'):
+            return jsonify({"error": res.get('error', 'Could not detect readable text in image.')}), 400
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"error": f"OCR extraction failed: {str(e)}"}), 500
 
 @api_bp.route('/upload', methods=['POST'])
 def upload_file():

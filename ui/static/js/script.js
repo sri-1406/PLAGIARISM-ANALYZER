@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (lower.endsWith('.pdf')) return '📕';
         if (lower.endsWith('.docx') || lower.endsWith('.doc')) return '📘';
         if (lower.endsWith('.txt')) return '📄';
+        if (['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp'].some(ext => lower.endsWith(ext))) return '🖼️';
         return '📜';
     }
 
@@ -189,11 +190,66 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadPDF('multi', lastMultiResults);
     });
 
+    const ocrBtn = document.getElementById('ocrBtn');
+    const ocrFileInput = document.getElementById('ocrFileInput');
+
+    if (ocrBtn && ocrFileInput) {
+        ocrBtn.addEventListener('click', () => {
+            ocrFileInput.click();
+        });
+
+        ocrFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            showLoader(true);
+            const loaderText = loader.querySelector('p');
+            const originalLoaderText = loaderText ? loaderText.textContent : 'Analyzing text integrity...';
+            if (loaderText) loaderText.textContent = 'Extracting handwritten text using OCR engine...';
+
+            resultsDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/ocr', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                textInput.value = data.text;
+                singleModeBtn.click(); // Ensure single mode view is open
+                
+                // Show temporary success alert
+                const statusInfo = document.createElement('div');
+                statusInfo.className = 'ocr-success-badge';
+                statusInfo.style.cssText = 'background: #dcfce7; color: #15803d; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.5rem; font-weight: 500; font-size: 0.9rem;';
+                statusInfo.innerHTML = `✓ Successfully extracted handwriting text (${data.confidence}% confidence via ${data.method}). You can now click <strong>Analyze</strong>.`;
+                
+                const existingBadge = document.querySelector('.ocr-success-badge');
+                if (existingBadge) existingBadge.remove();
+                textInput.parentElement.appendChild(statusInfo);
+
+            } catch (err) {
+                showError(`OCR Error: ${err.message}`);
+            } finally {
+                showLoader(false);
+                if (loaderText) loaderText.textContent = originalLoaderText;
+                ocrFileInput.value = '';
+            }
+        });
+    }
+
     fileInput.addEventListener('change', async (e) => {
         const files = Array.from(e.target.files);
         if (!files || files.length === 0) return;
 
-        const allowedExtensions = ['.txt', '.pdf', '.docx'];
+        const allowedExtensions = ['.txt', '.pdf', '.docx', '.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp'];
 
         if (currentMode === 'single') {
             const file = files[0];
@@ -201,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isValid = allowedExtensions.some(ext => fileName.endsWith(ext));
 
             if (!isValid) {
-                showError('Unsupported file format. Please use .txt, .pdf, or .docx');
+                showError('Unsupported file format. Please use .txt, .pdf, .docx, or images (.png, .jpg, .jpeg, .bmp, .tiff, .webp)');
                 return;
             }
 
@@ -239,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (validFiles.length < files.length) {
-                showError('Some files were skipped due to unsupported format. Only .txt, .pdf, and .docx are supported.');
+                showError('Some files were skipped due to unsupported format. Supported formats: .txt, .pdf, .docx, and image files.');
             }
 
             validFiles.forEach(f => {
