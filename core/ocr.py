@@ -3,11 +3,31 @@ import io
 import cv2
 import numpy as np
 from PIL import Image
-import torch
+try:
+    import torch
+except ImportError:
+    torch = None
 
+_EASYOCR_READER = None
 _TROCR_PROCESSOR = None
 _TROCR_MODEL = None
 _MODEL_NAME = None
+
+def get_easyocr_reader():
+    """
+    Lazy initialization of EasyOCR Reader for scene & handwritten page text detection.
+    """
+    global _EASYOCR_READER
+    if _EASYOCR_READER is None:
+        try:
+            import easyocr
+            print("[EasyOCR Engine] Initializing EasyOCR Reader...")
+            _EASYOCR_READER = easyocr.Reader(['en'], gpu=False)
+            print("[EasyOCR Engine] Successfully loaded EasyOCR Reader!")
+        except Exception as e:
+            print(f"[EasyOCR Load Warning] {e}")
+            _EASYOCR_READER = None
+    return _EASYOCR_READER
 
 def get_trocr_engine():
     """
@@ -15,8 +35,15 @@ def get_trocr_engine():
     First tries microsoft/trocr-base-handwritten, falls back to microsoft/trocr-small-handwritten.
     """
     global _TROCR_PROCESSOR, _TROCR_MODEL, _MODEL_NAME
+    if torch is None:
+        print("[TrOCR Warning] PyTorch module is not installed.")
+        return None, None, None
     if _TROCR_MODEL is None:
-        from transformers import ViTImageProcessor, RobertaTokenizer, TrOCRProcessor, VisionEncoderDecoderModel
+        try:
+            from transformers import ViTImageProcessor, RobertaTokenizer, TrOCRProcessor, VisionEncoderDecoderModel
+        except ImportError:
+            print("[TrOCR Warning] Transformers module is not installed.")
+            return None, None, None
         
         candidates = ["microsoft/trocr-base-handwritten"]
         for name in candidates:
@@ -292,15 +319,37 @@ def recognize_line_with_trocr(processor, model, pil_img):
         return "", 0.0
 
 
+import re
+
+def clean_ocr_text(text):
+    """
+    Clean raw OCR output by removing isolated non-alphanumeric noise symbols,
+    redundant quote marks/backticks, and normalizing spacing.
+    """
+    if not text:
+        return ""
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        # Strip leading/trailing noise symbols
+        line = re.sub(r'^[\W_]+|[\W_]+$', '', line)
+        # Remove standalone noise lines that lack real words (e.g. "829 ' ` `")
+        if len(re.findall(r'[a-zA-Z0-9]', line)) < 2:
+            continue
+        # Clean repetitive symbol artifacts
+        line = re.sub(r'[\'`~#$%{}|\\]+', ' ', line)
+        line = re.sub(r'\s+', ' ', line).strip()
+        if line:
+            cleaned_lines.append(line)
+    return '\n'.join(cleaned_lines)
+
+
 def extract_handwritten_text(image_input):
     """
-    Full TrOCR Neural Handwriting Pipeline:
-    1. Document area cropping & perspective unwarping
-    2. Page rotation & deskewing
-    3. Background shadow removal & illumination normalization
-    4. CLAHE contrast enhancement & bilateral stroke filtering
-    5. Line segmentation & top-to-bottom line reconstruction
-    6. Microsoft TrOCR handwriting recognition with sequence confidence scoring
+    Robust Multi-Engine Handwriting Recognition Pipeline:
+    1. EasyOCR Deep Learning Engine (handles full handwritten page layouts, line sorting & bounding boxes)
+    2. Microsoft TrOCR Engine (handwritten line fallback)
+    3. PyTesseract (printed/basic fallback)
     """
     image_bytes = None
 
@@ -328,57 +377,129 @@ def extract_handwritten_text(image_input):
         if img is None:
             return {"text": "", "confidence": 0.0, "error": "Failed to decode image file."}
 
-        # Step 1: Crop document & unwarp perspective
+        # --- Tier 1: EasyOCR Deep Learning Engine ---
+        reader = get_easyocr_reader()
+        if reader is not None:
+            try:
+                # Preprocess image to enhance line visibility & remove shadows
+                gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                norm_gray = remove_shadows_and_normalize_bg(gray)
+                cleaned_gray = enhance_contrast_and_denoise(norm_gray)
+                cleaned_bgr = cv2.cvtColor(cleaned_gray, cv2.COLOR_GRAY2BGR)
+
+                results = reader.readtext(cleaned_bgr)
+                items = []
+                for bbox, text, prob in results:
+                    text_str = str(text).strip()
+                    # Filter out isolated noise boxes with no letters/digits
+                    if prob >= 0.10 and text_str and len(re.findall(r'[a-zA-Z0-9]', text_str)) >= 1:
+                        y_center = sum(pt[1] for pt in bbox) / 4.0
+                        x_min = min(pt[0] for pt in bbox)
+                        height = max(pt[1] for pt in bbox) - min(pt[1] for pt in bbox)
+                        items.append({
+                            'bbox': bbox,
+                            'text': text_str,
+                            'prob': float(prob),
+                            'y_center': y_center,
+                            'x_min': x_min,
+                            'height': height
+                        })
+                
+                if items:
+                    items.sort(key=lambda i: i['y_center'])
+                    avg_height = float(np.median([i['height'] for i in items])) if items else 15.0
+                    line_threshold = max(12.0, avg_height * 0.65)
+
+                    lines = []
+                    current_line = []
+                    current_y = None
+
+                    for item in items:
+                        if current_y is None or abs(item['y_center'] - current_y) <= line_threshold:
+                            current_line.append(item)
+                            current_y = item['y_center'] if current_y is None else (current_y + item['y_center']) / 2.0
+                        else:
+                            current_line.sort(key=lambda i: i['x_min'])
+                            lines.append(' '.join(i['text'] for i in current_line))
+                            current_line = [item]
+                            current_y = item['y_center']
+
+                    if current_line:
+                        current_line.sort(key=lambda i: i['x_min'])
+                        lines.append(' '.join(i['text'] for i in current_line))
+
+                    raw_text = '\n'.join(lines)
+                    full_text = clean_ocr_text(raw_text)
+                    avg_conf = float(np.mean([i['prob'] for i in items])) * 100.0 if items else 0.0
+                    confidence_pct = round(avg_conf, 2)
+                    is_low_conf = confidence_pct < 25.0
+
+                    if len(full_text) >= 5:
+                        return {
+                            "text": full_text,
+                            "confidence": confidence_pct,
+                            "method": "Deep Learning EasyOCR Engine",
+                            "low_confidence_warning": is_low_conf
+                        }
+            except Exception as e:
+                print(f"[EasyOCR Processing Warning] {e}")
+
+        # --- Tier 2: TrOCR Engine Fallback ---
         cropped_doc = detect_and_crop_document(img)
-
-        # Step 2: Deskew angle
         deskewed_doc = deskew_image(cropped_doc)
-
-        # Step 3: Convert to grayscale and normalize background lighting
         gray = cv2.cvtColor(deskewed_doc, cv2.COLOR_BGR2GRAY)
         norm_gray = remove_shadows_and_normalize_bg(gray)
-
-        # Step 4: Contrast & Bilateral Denoising
         cleaned_gray = enhance_contrast_and_denoise(norm_gray)
         cleaned_bgr = cv2.cvtColor(cleaned_gray, cv2.COLOR_GRAY2BGR)
 
-        # Step 5: Line Segmentation
-        line_crops = segment_text_lines(cleaned_bgr)
-
-        # Step 6: Initialize TrOCR Engine
         processor, model, model_name = get_trocr_engine()
-
-        if processor is None or model is None:
-            return {"text": "", "confidence": 0.0, "error": "Failed to load TrOCR handwriting engine."}
-
-        recognized_lines = []
-        confidences = []
-
-        if line_crops and len(line_crops) > 0:
-            for line_pil in line_crops:
-                line_text, conf = recognize_line_with_trocr(processor, model, line_pil)
-                if line_text and len(line_text) > 0:
+        if processor is not None and model is not None:
+            line_crops = segment_text_lines(cleaned_bgr)
+            recognized_lines = []
+            confidences = []
+            if line_crops:
+                for line_pil in line_crops:
+                    line_text, conf = recognize_line_with_trocr(processor, model, line_pil)
+                    if line_text:
+                        recognized_lines.append(line_text)
+                        confidences.append(conf)
+            else:
+                pil_full = Image.fromarray(cv2.cvtColor(cleaned_bgr, cv2.COLOR_BGR2RGB))
+                line_text, conf = recognize_line_with_trocr(processor, model, pil_full)
+                if line_text:
                     recognized_lines.append(line_text)
                     confidences.append(conf)
-        else:
-            # Fallback if line segmentation returns empty: process entire cleaned image
-            pil_full = Image.fromarray(cv2.cvtColor(cleaned_bgr, cv2.COLOR_BGR2RGB))
-            line_text, conf = recognize_line_with_trocr(processor, model, pil_full)
-            if line_text:
-                recognized_lines.append(line_text)
-                confidences.append(conf)
 
-        full_text = "\n".join(recognized_lines)
-        avg_conf = float(np.mean(confidences)) if confidences else 0.0
-        confidence_pct = round(avg_conf * 100, 2)
+            full_text = clean_ocr_text("\n".join(recognized_lines))
+            avg_conf = float(np.mean(confidences)) if confidences else 0.0
+            confidence_pct = round(avg_conf * 100, 2)
+            if len(full_text) >= 5:
+                return {
+                    "text": full_text,
+                    "confidence": confidence_pct,
+                    "method": f"Microsoft TrOCR Model ({model_name})",
+                    "low_confidence_warning": confidence_pct < 55.0
+                }
 
-        is_low_confidence = confidence_pct < 55.0
+        # --- Tier 3: PyTesseract Fallback ---
+        try:
+            import pytesseract
+            pil_full = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+            extracted_text = clean_ocr_text(pytesseract.image_to_string(pil_full).strip())
+            if extracted_text:
+                return {
+                    "text": extracted_text,
+                    "confidence": 70.0,
+                    "method": "Tesseract OCR Engine (Fallback)",
+                    "low_confidence_warning": False
+                }
+        except Exception:
+            pass
 
         return {
-            "text": full_text,
-            "confidence": confidence_pct,
-            "method": f"Microsoft TrOCR Handwriting Model ({model_name})",
-            "low_confidence_warning": is_low_confidence
+            "text": "",
+            "confidence": 0.0,
+            "error": "Could not extract text from image. Please ensure image is clear and well-lit."
         }
 
     except Exception as e:
@@ -386,5 +507,5 @@ def extract_handwritten_text(image_input):
         return {
             "text": "",
             "confidence": 0.0,
-            "error": f"TrOCR handwriting pipeline error: {str(e)}"
+            "error": f"OCR pipeline error: {str(e)}"
         }
