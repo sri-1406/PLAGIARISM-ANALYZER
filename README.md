@@ -76,7 +76,10 @@ A sophisticated plagiarism detection tool designed to analyze documents, compare
 
 ## 👥 Contributors
 
+- **Sri Likhith S** ([@sri-1406](https://github.com/sri-1406)) - Contributor & Developer
 - **BINDU C S** ([@just-da-way-im](https://github.com/just-da-way-im)) - Contributor & Developer
+- **Bhavya** ([@bhavya203](https://github.com/bhavya203)) - Contributor & Developer
+- **Mrahaman** ([@mrahaman7](https://github.com/mrahaman7)) - Contributor & Developer
 
 ## 🤝 Contributing
 
