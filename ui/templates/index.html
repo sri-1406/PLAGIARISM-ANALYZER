@@ -4,162 +4,465 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Plagiarism Analyzer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Plagiarism Analyzer Pro — Intelligent Document Integrity</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=13.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <div class="container">
-        <header>
-            <div class="header-top">
-                <h1>Plagiarism Analyzer</h1>
-                <div class="header-actions">
-                    <div class="mode-toggle">
-                        <button id="singleMode" class="btn-toggle active">Single Analysis</button>
-                        <button id="multiMode" class="btn-toggle">Multi-Compare</button>
+    <div class="app-wrapper">
+        <!-- TOP NAVIGATION BAR -->
+        <header class="navbar">
+            <div class="nav-container">
+                <div class="brand">
+                    <div class="brand-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <path d="m9 12 2 2 4-4"/>
+                        </svg>
                     </div>
-                    <button id="themeToggle" class="btn btn-secondary theme-toggle">
-                        <span class="icon-dark">🌙</span>
-                        <span class="icon-light">☀️</span>
+                    <div class="brand-text">
+                        <div class="brand-title">
+                            Plagiarism Analyzer <span class="badge-pro">PRO</span>
+                        </div>
+                        <div class="brand-sub">Neural Integrity & Semantic Engine</div>
+                    </div>
+                </div>
+
+                <div class="nav-controls">
+                    <!-- MODE TOGGLE -->
+                    <div class="mode-switcher" role="tablist">
+                        <button id="singleMode" class="btn-mode active" role="tab" aria-selected="true">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            <span>Single Document</span>
+                        </button>
+                        <button id="multiMode" class="btn-mode" role="tab" aria-selected="false">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            <span>Multi-Compare</span>
+                        </button>
+                    </div>
+
+                    <!-- THEME TOGGLE -->
+                    <button id="themeToggle" class="btn-theme" title="Toggle Theme" aria-label="Toggle Dark and Light Mode">
+                        <span class="icon-dark">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        </span>
+                        <span class="icon-light">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                        </span>
                     </button>
                 </div>
             </div>
         </header>
 
-        <main>
-            <section class="card main-input-card">
-                <div id="singleInputSection">
-                    <textarea id="textInput" placeholder="Paste your text here to analyze..."></textarea>
+        <!-- MAIN CONTAINER -->
+        <main class="main-content">
+            <!-- HERO INTRODUCTION -->
+            <section class="hero-section">
+                <div class="hero-badge">
+                    <span class="badge-dot pulse"></span>
+                    <span>10-Stage Pipeline • TF-IDF Vector Space • Official Audit Reports</span>
                 </div>
-
-                <div id="multiInputSection" style="display: none;">
-                    <div class="multi-upload-info">
-                        <h3>Multi-Document Mode</h3>
-                        <p>Upload 2 or more files to compare them against each other.</p>
-                    </div>
-                </div>
-
-                <div class="actions">
-                    <div class="file-upload">
-                        <label for="fileInput" id="uploadLabel" class="btn btn-primary">Upload Document / Image</label>
-                        <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.png,.jpg,.jpeg,.bmp,.tiff,.webp" style="display: none;" multiple>
-                        <input type="file" id="ocrFileInput" accept=".png,.jpg,.jpeg,.bmp,.tiff,.webp" style="display: none;">
-                        <button type="button" id="ocrBtn" class="btn btn-secondary" title="Extract text from handwritten document images">📷 Handwriting OCR</button>
-                        <span id="fileName" style="color: var(--text-light); font-size: 0.9rem; display: none;">No file selected</span>
-                    </div>
-
-                    <button id="analyzeBtn" class="btn btn-primary">Analyze</button>
-                </div>
-
-                <div id="fileListContainer" class="selected-files-container">
-                    <span class="no-files-placeholder">No files selected</span>
-                </div>
-
-                <div id="loader" class="loader">
-                    <div class="spinner"></div>
-                    <p>Analyzing text integrity...</p>
-                </div>
-
-                <div id="errorMsg" class="error-msg"></div>
+                <h1 class="hero-headline">Deep Text Integrity & Plagiarism Analysis</h1>
+                <p class="hero-subline">
+                    Analyze academic essays, research papers, and technical manuscripts against your document database with instant similarity scoring and downloadable comprehensive audit reports.
+                </p>
             </section>
 
-            <section id="results" class="card" style="display: none;">
-                <div id="singleResults">
-                    <div class="result-header">
-                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                            <h2>Analysis Result</h2>
-                            <button id="downloadSingleBtn" class="btn btn-primary"
-                                style="padding: 0.5rem 1rem; font-size: 0.8rem;">Download Report</button>
+            <!-- WORKSPACE INPUT CARD -->
+            <section class="card workspace-card">
+                <!-- SINGLE DOCUMENT WORKSPACE -->
+                <div id="singleInputSection">
+                    <!-- MAIN EXTRACTED TEXT / INPUT AREA -->
+                    <div class="editor-wrapper">
+                        <div class="editor-header">
+                            <div class="editor-header-left">
+                                <span class="editor-title">Document Text Content</span>
+                                <div id="extractionBadge" class="extraction-badge" style="display: none;">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span id="extractionFileName">sample.pdf</span>
+                                </div>
+                            </div>
+                            <div class="editor-tools">
+                                <button type="button" id="clearTextBtn" class="btn-text-action" title="Clear text">Clear</button>
+                                <button type="button" id="pasteClipboardBtn" class="btn-text-action highlight" title="Paste clipboard">Paste Clipboard</button>
+                            </div>
                         </div>
-                        <div class="speedometer-container">
-                            <svg class="speedometer-svg" viewBox="0 0 200 110">
-                                <path class="gauge-track" d="M 20,100 A 80,80 0 0,1 180,100" fill="none"
-                                    stroke="#f1f5f9" stroke-width="14" stroke-linecap="round" />
-                                <path d="M 20,100 A 80,80 0 0,1 53,35.2" fill="none" stroke="#10b981" stroke-width="14"
-                                    stroke-linecap="round" opacity="0.2" />
-                                <path d="M 53,35.2 A 80,80 0 0,1 147,35.2" fill="none" stroke="#f59e0b"
-                                    stroke-width="14" stroke-linecap="round" opacity="0.2" />
-                                <path d="M 147,35.2 A 80,80 0 0,1 180,100" fill="none" stroke="#ef4444"
-                                    stroke-width="14" stroke-linecap="round" opacity="0.2" />
-                                <path id="gaugeProgress" d="M 20,100 A 80,80 0 0,1 180,100" fill="none"
-                                    stroke="url(#gaugeGradient)" stroke-width="14" stroke-linecap="round"
-                                    stroke-dasharray="251.3" stroke-dashoffset="251.3" />
-                                <g id="needleGroup">
-                                    <path d="M 100,20 L 104,100 L 96,100 Z" fill="var(--needle)" />
-                                    <circle cx="100" cy="100" r="5" fill="var(--needle)" stroke="#fff"
-                                        stroke-width="1.5" />
-                                </g>
-                                <defs>
-                                    <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                        <stop offset="0%" stop-color="#10b981" />
-                                        <stop offset="50%" stop-color="#f59e0b" />
-                                        <stop offset="100%" stop-color="#ef4444" />
-                                    </linearGradient>
-                                </defs>
-                                <circle cx="100" cy="100" r="3" fill="#fff" />
-                            </svg>
-                            <div class="gauge-text-overlay">
-                                <span id="scoreVal">0.0%</span>
-                                <span class="label">Plagiarism</span>
+
+                        <textarea id="textInput" placeholder="Paste your text here to analyze, or upload a document below to extract its text..." rows="9"></textarea>
+
+                        <div class="editor-footer">
+                            <div class="editor-counts">
+                                <span id="wordCounter">0 words</span>
+                                <span class="divider">•</span>
+                                <span id="charCounter">0 characters</span>
+                            </div>
+                            <div class="editor-hint">Edit or review extracted text prior to analysis</div>
+                        </div>
+                    </div>
+
+                    <!-- COMPACT UPLOAD DROPZONE BELOW TEXTAREA -->
+                    <div class="compact-upload-wrapper">
+                        <div class="compact-dropzone" id="singleDropZone">
+                            <div class="compact-dropzone-icon">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+                                    <path d="M12 12v9"/>
+                                    <path d="m16 16-4-4-4 4"/>
+                                </svg>
+                            </div>
+                            <div class="compact-dropzone-info">
+                                <div class="compact-dropzone-title">Drag &amp; drop your document here</div>
+                                <div class="compact-dropzone-sub">or click to browse from your device</div>
+                            </div>
+                            <div class="format-tags compact-tags">
+                                <span class="format-tag">.PDF</span>
+                                <span class="format-tag">.DOCX</span>
+                                <span class="format-tag">.TXT</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MULTI DOCUMENT WORKSPACE -->
+                <div id="multiInputSection" style="display: none;">
+                    <div class="multi-info-banner">
+                        <div class="info-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                        </div>
+                        <div class="info-content">
+                            <h4>Cross-Document Plagiarism Comparison</h4>
+                            <p>Upload 2 or more documents to calculate N×N symmetric TF-IDF similarity matrix, cross-file sentence alignments, and cluster overlaps.</p>
+                        </div>
+                    </div>
+
+                    <div class="dropzone" id="multiDropZone">
+                        <div class="dropzone-content">
+                            <div class="dropzone-icon-pulse">
+                                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="12" y1="18" x2="12" y2="12"/>
+                                    <line x1="9" y1="15" x2="15" y2="15"/>
+                                </svg>
+                            </div>
+                            <h3 class="dropzone-title">Drop 2 or more files to compare</h3>
+                            <p class="dropzone-sub">Upload all documents simultaneously or browse your folders</p>
+                            <div class="format-tags">
+                                <span class="format-tag">.PDF</span>
+                                <span class="format-tag">.DOCX</span>
+                                <span class="format-tag">.TXT</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HIDDEN FILE INPUT (Used by JS) -->
+                <input type="file" id="fileInput" accept=".txt,.pdf,.docx" style="display: none;" multiple>
+                <label for="fileInput" id="uploadLabel" style="display: none;">Upload Document</label>
+                <span id="fileName" style="display: none;"></span>
+
+                <!-- STAGED / SELECTED FILES CONTAINER -->
+                <div id="fileListContainer" class="selected-files-container">
+                    <span class="no-files-placeholder">No documents selected</span>
+                </div>
+
+                <!-- ACTION CONTROLS -->
+                <div class="action-footer">
+                    <div class="action-status-hint" id="actionStatusHint">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <span id="statusHintText">Ready to analyze document integrity.</span>
+                    </div>
+
+                    <button id="analyzeBtn" class="btn-analyze">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                        <span id="analyzeBtnText">Analyze Plagiarism</span>
+                    </button>
+                </div>
+
+                <!-- MODERN SCANNER LOADER -->
+                <div id="loader" class="loader-box">
+                    <div class="scanner-bar"></div>
+                    <div class="loader-spinner-wrapper">
+                        <div class="spinner-pulse"></div>
+                    </div>
+                    <h4 class="loader-title">Analyzing Document Integrity...</h4>
+                    <p id="loaderStepText" class="loader-step">Initializing vector space models & tokenizing sentences...</p>
+                </div>
+
+                <!-- ERROR BANNER -->
+                <div id="errorMsg" class="error-banner"></div>
+            </section>
+
+            <!-- RESULTS SECTION -->
+            <section id="results" class="card results-card" style="display: none;">
+                <!-- SINGLE ANALYSIS RESULTS -->
+                <div id="singleResults" style="display: none;">
+                    <div class="results-header-bar">
+                        <div class="results-title-group">
+                            <div class="result-badge-check">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div>
+                                <h2 class="results-heading">Analysis Result</h2>
+                                <p class="results-subheading">Statistical overview computed via TF-IDF vectorization & Jaccard sentence alignment</p>
+                            </div>
+                        </div>
+
+                        <button id="downloadSingleBtn" class="btn-download-hero">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <span>Download Full PDF Report</span>
+                        </button>
+                    </div>
+
+                    <!-- EXECUTIVE HERO METRICS GRID -->
+                    <div class="overview-grid">
+                        <!-- SPEEDOMETER GAUGE CARD -->
+                        <div class="gauge-card">
+                            <div class="gauge-card-header">
+                                <span class="gauge-title">Similarity Gauge</span>
+                                <div id="riskBadge" class="risk-pill risk-low">
+                                    <span class="pill-dot"></span>
+                                    <span id="riskText">Safe & Authentic</span>
+                                </div>
+                            </div>
+
+                            <div class="speedometer-container">
+                                <svg class="speedometer-svg" viewBox="0 0 200 110">
+                                    <path class="gauge-track" d="M 20,100 A 80,80 0 0,1 180,100" fill="none"
+                                        stroke="var(--gauge-bg)" stroke-width="14" stroke-linecap="round" />
+                                    <path d="M 20,100 A 80,80 0 0,1 53,35.2" fill="none" stroke="#10b981" stroke-width="14"
+                                        stroke-linecap="round" opacity="0.15" />
+                                    <path d="M 53,35.2 A 80,80 0 0,1 147,35.2" fill="none" stroke="#f59e0b"
+                                        stroke-width="14" stroke-linecap="round" opacity="0.15" />
+                                    <path d="M 147,35.2 A 80,80 0 0,1 180,100" fill="none" stroke="#ef4444"
+                                        stroke-width="14" stroke-linecap="round" opacity="0.15" />
+                                    <path id="gaugeProgress" d="M 20,100 A 80,80 0 0,1 180,100" fill="none"
+                                        stroke="url(#gaugeGradient)" stroke-width="14" stroke-linecap="round"
+                                        stroke-dasharray="251.3" stroke-dashoffset="251.3" />
+                                    <g id="needleGroup">
+                                        <path d="M 100,22 L 103,100 L 97,100 Z" fill="var(--needle)" />
+                                        <circle cx="100" cy="100" r="5" fill="var(--needle)" stroke="#fff"
+                                            stroke-width="1.5" />
+                                    </g>
+                                    <defs>
+                                        <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stop-color="#10b981" />
+                                            <stop offset="45%" stop-color="#f59e0b" />
+                                            <stop offset="100%" stop-color="#ef4444" />
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="100" cy="100" r="3" fill="#fff" />
+                                </svg>
+
+                                <div class="gauge-text-overlay">
+                                    <div class="score-display">
+                                        <span id="scoreVal">0.0%</span>
+                                    </div>
+                                    <span class="label">Plagiarism Detected</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- STAT METRICS QUAD -->
+                        <div class="metrics-quad">
+                            <div class="stat-card">
+                                <div class="stat-icon-wrapper icon-danger">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-label">Plagiarism Ratio</span>
+                                    <div class="stat-value" id="statSimilarity">0.0%</div>
+                                    <div class="stat-bar-track">
+                                        <div class="stat-bar-fill" id="barSimilarity" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon-wrapper icon-success">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-label">Document Originality</span>
+                                    <div class="stat-value text-success" id="statOriginality">100.0%</div>
+                                    <div class="stat-bar-track">
+                                        <div class="stat-bar-fill fill-success" id="barOriginality" style="width: 100%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon-wrapper icon-info">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-label">Sentences Evaluated</span>
+                                    <div class="stat-value" id="statSentences">0</div>
+                                    <span class="stat-subtext" id="statFlaggedSentences">0 flagged matches</span>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon-wrapper icon-primary">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-label">Primary Correlated Source</span>
+                                    <div class="stat-value text-truncate" id="statTopSource" style="font-size: 1.1rem;">No Significant Source</div>
+                                    <span class="stat-subtext" id="statTopSourceScore">Baseline Corpus Safe</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MULTI ANALYSIS RESULTS -->
+                <div id="multiResults" style="display: none;">
+                    <div class="results-header-bar">
+                        <div class="results-title-group">
+                            <div class="result-badge-check">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div>
+                                <h2 class="results-heading">Inter-Document Comparison</h2>
+                                <p class="results-subheading">N×N Symmetric Cross-Document Matrix & Pairwise Alignments</p>
+                            </div>
+                        </div>
+
+                        <button id="downloadMultiBtn" class="btn-download-hero">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <span>Download Multi-Report PDF</span>
+                        </button>
+                    </div>
+
+                    <!-- EXECUTIVE HERO METRICS GRID FOR MULTI -->
+                    <div class="multi-overview-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon-wrapper icon-primary">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            </div>
+                            <div class="stat-content">
+                                <span class="stat-label">Documents Compared</span>
+                                <div class="stat-value" id="multiStatDocs">0</div>
+                                <span class="stat-subtext" id="multiStatDocsSub">Distinct Corpus Files</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon-wrapper icon-info">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+                            </div>
+                            <div class="stat-content">
+                                <span class="stat-label">Pairwise Comparisons</span>
+                                <div class="stat-value" id="multiStatPairs">0</div>
+                                <span class="stat-subtext">Evaluated Combinations</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon-wrapper icon-danger">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                            </div>
+                            <div class="stat-content">
+                                <span class="stat-label">Peak Overlap</span>
+                                <div class="stat-value" id="multiStatPeak">0.0%</div>
+                                <span class="stat-subtext text-truncate" id="multiStatPeakPair" title="Highest Pairwise Overlap">Highest Overlap</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon-wrapper icon-success">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                            </div>
+                            <div class="stat-content">
+                                <span class="stat-label">Average Similarity</span>
+                                <div class="stat-value" id="multiStatAvg">0.0%</div>
+                                <span class="stat-subtext">Mean Corpus Overlap</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="section-results">
-                        <h3>Top Matches</h3>
-                        <ul id="docList" class="match-list"></ul>
-                    </div>
-
-                    <div class="section-results">
-                        <h3>Highlighted Content</h3>
-                        <div id="highlightedBox" class="highlighted-content"></div>
-                    </div>
-
-                    <div class="section-results">
-                        <h3>Detailed Sentence Matches</h3>
-                        <div class="sentence-match-table-container">
-                            <table class="match-table">
-                                <thead>
-                                    <tr>
-                                        <th>Sentence</th>
-                                        <th>Source</th>
-                                        <th>Similarity</th>
-                                        <th>Level</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="sentenceMatchList"></tbody>
-                            </table>
+                    <div class="matrix-section">
+                        <div class="section-title-wrap">
+                            <h3 class="section-title">Similarity Matrix</h3>
+                            <span class="section-badge">Corpus Cross-Correlation</span>
                         </div>
-                    </div>
-                </div>
-
-                <div id="multiResults" style="display: none;">
-                    <div class="result-summary-header">
-                        <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-                            <h2>Inter-Document Comparison</h2>
-                            <button id="downloadMultiBtn" class="btn btn-primary"
-                                style="padding: 0.5rem 1rem; font-size: 0.8rem;">Download Report</button>
-                        </div>
-                    </div>
-                    <div class="section-results">
-                        <h3>Similarity Matrix</h3>
                         <div class="matrix-container" id="matrixContainer"></div>
                     </div>
-                    <div class="section-results">
-                        <h3>Detailed Pairwise Matches</h3>
+
+                    <div class="pairwise-section">
+                        <div class="section-title-wrap">
+                            <h3 class="section-title">Pairwise Alignments</h3>
+                            <span class="section-badge">Sentence Matches</span>
+                        </div>
                         <div id="pairwiseList" class="pairwise-results"></div>
                     </div>
                 </div>
 
-                <div class="section-results history-section">
-                    <h3>Analysis History</h3>
+                <!-- ANALYSIS HISTORY -->
+                <div class="history-section">
+                    <div class="history-header">
+                        <div class="history-title-group">
+                            <div class="history-icon-badge">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="section-title">Recent Document Audits</h3>
+                                <p class="history-subtitle">Search, filter, re-inspect, or download previously analyzed document audits</p>
+                            </div>
+                        </div>
+
+                        <div class="history-count-pill" id="historyCountBadge">0 Audits</div>
+                    </div>
+
+                    <!-- HISTORY CONTROLS TOOLBAR -->
+                    <div class="history-toolbar">
+                        <div class="history-search-wrapper">
+                            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="historySearchInput" placeholder="Search audits by text or Audit #..." autocomplete="off">
+                            <button type="button" id="historyClearSearch" class="search-clear-btn" style="display: none;">×</button>
+                        </div>
+
+                        <div class="history-filter-group">
+                            <button type="button" class="history-filter-btn active" data-filter="all">All Audits</button>
+                            <button type="button" class="history-filter-btn" data-filter="clean">Clean (&lt;40%)</button>
+                            <button type="button" class="history-filter-btn" data-filter="moderate">Moderate (40-69%)</button>
+                            <button type="button" class="history-filter-btn" data-filter="critical">High Risk (≥70%)</button>
+                        </div>
+                    </div>
+
+                    <!-- AUDITS GRID -->
                     <div id="historyList" class="history-grid"></div>
+
+                    <!-- PAGINATION CONTROLS -->
+                    <div class="history-pagination" id="historyPagination" style="display: none;">
+                        <button type="button" id="historyPrevBtn" class="btn-page-nav" disabled>&larr; Previous</button>
+                        <span id="historyPageIndicator" class="page-indicator">Page 1 of 1</span>
+                        <button type="button" id="historyNextBtn" class="btn-page-nav">Next &rarr;</button>
+                    </div>
                 </div>
             </section>
         </main>
+
+        <!-- FOOTER -->
+        <footer class="app-footer">
+            <div class="footer-container">
+                <div class="footer-brand">
+                    <span>Plagiarism Analyzer Pro</span> • Advanced Semantic Document Integrity Engine
+                </div>
+                <div class="footer-tech">
+                    <span>NLTK Tokenization</span> • <span>TF-IDF Vector Space</span> • <span>ReportLab Engine</span>
+                </div>
+            </div>
+        </footer>
     </div>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}?v=11.00"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}?v=13.00"></script>
 </body>
 
 </html>

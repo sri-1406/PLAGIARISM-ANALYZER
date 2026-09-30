@@ -30,3 +30,8 @@ venv_new/
 *.log
 reports/*
 !reports/.gitkeep
+data/private_versions/
+data/temp_uploads/
+data/user_uploads/
+*.joblib
+

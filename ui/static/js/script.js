@@ -1,57 +1,111 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("%c --- AI PLAGIARISM ANALYZER v9.99 LOADED --- ", "background: #4f46e5; color: white; font-weight: bold; font-size: 14px; padding: 4px;");
+    console.log("%c --- PLAGIARISM ANALYZER PRO v13.0 LOADED --- ", "background: #4f46e5; color: white; font-weight: bold; font-size: 14px; padding: 4px;");
 
+    // Elements
     const textInput = document.getElementById('textInput');
     const analyzeBtn = document.getElementById('analyzeBtn');
     const fileInput = document.getElementById('fileInput');
     const resultsDiv = document.getElementById('results');
     const loader = document.getElementById('loader');
+    const loaderStepText = document.getElementById('loaderStepText');
     const errorDiv = document.getElementById('errorMsg');
+    const statusHintText = document.getElementById('statusHintText');
 
-    // UI Elements for results
-    const scoreVal = document.getElementById('scoreVal');
-    const docList = document.getElementById('docList');
-    const highlightedBox = document.getElementById('highlightedBox');
-    const themeToggle = document.getElementById('themeToggle');
-    const uploadLabel = document.getElementById('uploadLabel');
+    // Tabs & Views
+    const tabUploadBtn = document.getElementById('tabUploadBtn');
+    const tabPasteBtn = document.getElementById('tabPasteBtn');
+    const singleDropzoneView = document.getElementById('singleDropzoneView');
+    const singlePasteView = document.getElementById('singlePasteView');
+    const singleDropZone = document.getElementById('singleDropZone');
+    const multiDropZone = document.getElementById('multiDropZone');
 
-    // New Multi-Compare Elements
-    const singleResults = document.getElementById('singleResults');
-    const multiResults = document.getElementById('multiResults');
-    const matrixContainer = document.getElementById('matrixContainer');
-    const pairwiseList = document.getElementById('pairwiseList');
+    // Mode Toggle
     const singleModeBtn = document.getElementById('singleMode');
     const multiModeBtn = document.getElementById('multiMode');
     const singleInputSection = document.getElementById('singleInputSection');
     const multiInputSection = document.getElementById('multiInputSection');
+    const singleResults = document.getElementById('singleResults');
+    const multiResults = document.getElementById('multiResults');
+    const themeToggle = document.getElementById('themeToggle');
 
+    // File Chips & Counter
+    const fileListContainer = document.getElementById('fileListContainer');
+    const wordCounter = document.getElementById('wordCounter');
+    const charCounter = document.getElementById('charCounter');
+    const clearTextBtn = document.getElementById('clearTextBtn');
+    const pasteClipboardBtn = document.getElementById('pasteClipboardBtn');
+
+    // Single Result Metric Elements
+    const scoreVal = document.getElementById('scoreVal');
+    const gaugeProgress = document.getElementById('gaugeProgress');
+    const needleGroup = document.getElementById('needleGroup');
+    const riskBadge = document.getElementById('riskBadge');
+    const riskText = document.getElementById('riskText');
+    const statSimilarity = document.getElementById('statSimilarity');
+    const barSimilarity = document.getElementById('barSimilarity');
+    const statOriginality = document.getElementById('statOriginality');
+    const barOriginality = document.getElementById('barOriginality');
+    const statSentences = document.getElementById('statSentences');
+    const statFlaggedSentences = document.getElementById('statFlaggedSentences');
+    const statTopSource = document.getElementById('statTopSource');
+    const statTopSourceScore = document.getElementById('statTopSourceScore');
+
+    // Multi Results Elements
+    const matrixContainer = document.getElementById('matrixContainer');
+    const pairwiseList = document.getElementById('pairwiseList');
+    const multiStatDocs = document.getElementById('multiStatDocs');
+    const multiStatDocsSub = document.getElementById('multiStatDocsSub');
+    const multiStatPairs = document.getElementById('multiStatPairs');
+    const multiStatPeak = document.getElementById('multiStatPeak');
+    const multiStatPeakPair = document.getElementById('multiStatPeakPair');
+    const multiStatAvg = document.getElementById('multiStatAvg');
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // Downloads
+    const downloadSingleBtn = document.getElementById('downloadSingleBtn');
+    const downloadMultiBtn = document.getElementById('downloadMultiBtn');
+
+    // History
+    const historyList = document.getElementById('historyList');
+    const historyCountBadge = document.getElementById('historyCountBadge');
+
+    // State
     let currentMode = 'single'; // 'single' or 'multi'
+    let currentSingleTab = 'upload'; // 'upload' or 'paste'
+    let selectedFilesStore = [];
     let lastSingleResults = null;
     let lastSingleText = '';
     let lastMultiResults = null;
     let lastReportId = null;
+    let loaderInterval = null;
 
-    // Theme logic
+    // Theme Management
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
     themeToggle.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
+        const activeTheme = document.documentElement.getAttribute('data-theme');
+        const nextTheme = activeTheme === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', nextTheme);
+        localStorage.setItem('theme', nextTheme);
     });
 
-    const fileListContainer = document.getElementById('fileListContainer');
-    let selectedFilesStore = []; // Holds selected File objects
-
+    // Helper: File Type Formatting
     function getFileIcon(filename) {
         const lower = filename.toLowerCase();
         if (lower.endsWith('.pdf')) return '📕';
         if (lower.endsWith('.docx') || lower.endsWith('.doc')) return '📘';
         if (lower.endsWith('.txt')) return '📄';
-        if (['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp'].some(ext => lower.endsWith(ext))) return '🖼️';
-        return '📜';
+        return '📑';
     }
 
     function formatFileSize(bytes) {
@@ -61,17 +115,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
+    // Render Staged Files Container
     function renderFileList() {
         if (!fileListContainer) return;
 
         if (selectedFilesStore.length === 0) {
             fileListContainer.classList.remove('has-files');
-            fileListContainer.innerHTML = '<span class="no-files-placeholder">No files selected</span>';
+            fileListContainer.innerHTML = '<span class="no-files-placeholder">No documents selected</span>';
+            updateStatusHint();
             return;
         }
 
         fileListContainer.classList.add('has-files');
-        const labelText = currentMode === 'single' ? 'Selected File:' : `Selected Files (${selectedFilesStore.length}):`;
+        const labelText = currentMode === 'single' ? 'Staged Document:' : `Staged Documents (${selectedFilesStore.length}):`;
 
         let html = `
             <div class="selected-files-header">
@@ -89,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="chip-icon">${icon}</span>
                     <span class="chip-name" title="${file.name}">${file.name}</span>
                     <span class="chip-size">${sizeStr}</span>
-                    <button type="button" class="chip-remove" data-index="${index}" title="Remove ${file.name}">×</button>
+                    <button type="button" class="chip-remove" data-index="${index}" title="Remove file">×</button>
                 </div>
             `;
         });
@@ -110,6 +166,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearAllFiles();
             });
         }
+
+        updateStatusHint();
     }
 
     function removeFileAt(index) {
@@ -134,166 +192,138 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Mode Toggle Logic
-    singleModeBtn.addEventListener('click', () => {
-        currentMode = 'single';
-        singleModeBtn.classList.add('active');
-        multiModeBtn.classList.remove('active');
-        singleInputSection.style.display = 'block';
-        multiInputSection.style.display = 'none';
-        resultsDiv.style.display = 'none';
-
-        uploadLabel.textContent = 'Upload Document';
-        clearAllFiles();
-    });
-
-    multiModeBtn.addEventListener('click', () => {
-        currentMode = 'multi';
-        multiModeBtn.classList.add('active');
-        singleModeBtn.classList.remove('active');
-        singleInputSection.style.display = 'none';
-        multiInputSection.style.display = 'block';
-        resultsDiv.style.display = 'none';
-
-        uploadLabel.textContent = 'Upload Documents';
-        clearAllFiles();
-    });
-
-    analyzeBtn.addEventListener('click', async () => {
+    function updateStatusHint() {
+        if (!statusHintText) return;
         if (currentMode === 'single') {
-            const text = textInput.value.trim();
-            if (!text) {
-                showError('Please enter some text to analyze or upload a document.');
-                return;
+            const words = textInput.value.trim().split(/\s+/).filter(Boolean).length;
+            if (selectedFilesStore.length > 0) {
+                statusHintText.textContent = `Document "${selectedFilesStore[0].name}" loaded (${words} words). Click 'Analyze Plagiarism' to start.`;
+            } else if (words > 0) {
+                statusHintText.textContent = `${words} words loaded. Click 'Analyze Plagiarism' to start.`;
+            } else {
+                statusHintText.textContent = "Type or paste text above, or upload a document below (.pdf, .docx, .txt).";
             }
-            lastSingleText = text;
-            performAnalysis(text);
         } else {
-            if (selectedFilesStore.length < 2) {
-                showError('Please select at least two files for cross-comparison.');
-                return;
+            const count = selectedFilesStore.length;
+            if (count >= 2) {
+                statusHintText.textContent = `${count} documents staged. Ready for N×N cross-comparison.`;
+            } else {
+                statusHintText.textContent = `Stage at least 2 documents to compare (${count}/2 selected).`;
             }
-            performMultiAnalysis(selectedFilesStore);
         }
-    });
+    }
 
-    document.getElementById('downloadSingleBtn').addEventListener('click', () => {
-        if (!lastSingleResults) return;
-        downloadPDF('single', {
-            results: lastSingleResults,
-            text: lastSingleText
+    // Word & Character Counter
+    function updateWordAndCharCount() {
+        const text = textInput.value;
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        const chars = text.length;
+
+        if (wordCounter) wordCounter.textContent = `${words} words`;
+        if (charCounter) charCounter.textContent = `${chars} characters`;
+        updateStatusHint();
+    }
+
+    if (textInput) {
+        textInput.addEventListener('input', () => {
+            updateWordAndCharCount();
         });
-    });
+    }
 
-    document.getElementById('downloadMultiBtn').addEventListener('click', () => {
-        if (!lastMultiResults) return;
-        downloadPDF('multi', lastMultiResults);
-    });
-
-    const ocrBtn = document.getElementById('ocrBtn');
-    const ocrFileInput = document.getElementById('ocrFileInput');
-
-    if (ocrBtn && ocrFileInput) {
-        ocrBtn.addEventListener('click', () => {
-            ocrFileInput.click();
+    if (clearTextBtn) {
+        clearTextBtn.addEventListener('click', () => {
+            textInput.value = '';
+            const extractionBadge = document.getElementById('extractionBadge');
+            if (extractionBadge) extractionBadge.style.display = 'none';
+            clearAllFiles();
+            updateWordAndCharCount();
+            textInput.focus();
         });
+    }
 
-        ocrFileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            showLoader(true);
-            const loaderText = loader.querySelector('p');
-            const originalLoaderText = loaderText ? loaderText.textContent : 'Analyzing text integrity...';
-            if (loaderText) loaderText.textContent = 'Extracting handwritten text using OCR engine...';
-
-            resultsDiv.style.display = 'none';
-            errorDiv.style.display = 'none';
-
+    if (pasteClipboardBtn) {
+        pasteClipboardBtn.addEventListener('click', async () => {
             try {
-                const response = await fetch('/api/ocr', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                if (data.error) throw new Error(data.error);
-
-                textInput.value = data.text;
-                singleModeBtn.click(); // Ensure single mode view is open
-                
-                // Show status or low-confidence warning badge
-                const statusInfo = document.createElement('div');
-                statusInfo.className = 'ocr-success-badge';
-                
-                if (data.low_confidence_warning || data.confidence < 55) {
-                    statusInfo.style.cssText = 'background: #fef3c7; color: #92400e; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.5rem; font-weight: 500; font-size: 0.9rem; border: 1px solid #fde68a;';
-                    statusInfo.innerHTML = `⚠️ <strong>Handwriting recognition needs review</strong> (${data.confidence}% confidence via ${data.method}). Extracted text is editable below for manual review before clicking <strong>Analyze</strong>.`;
-                } else {
-                    statusInfo.style.cssText = 'background: #dcfce7; color: #15803d; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.5rem; font-weight: 500; font-size: 0.9rem; border: 1px solid #bbf7d0;';
-                    statusInfo.innerHTML = `✓ Extracted handwritten text (${data.confidence}% confidence via ${data.method}). You can now click <strong>Analyze</strong>.`;
+                const clipText = await navigator.clipboard.readText();
+                if (clipText) {
+                    textInput.value = clipText;
+                    updateWordAndCharCount();
                 }
-                
-                const existingBadge = document.querySelector('.ocr-success-badge');
-                if (existingBadge) existingBadge.remove();
-                textInput.parentElement.appendChild(statusInfo);
-
             } catch (err) {
-                showError(`OCR Error: ${err.message}`);
-            } finally {
-                showLoader(false);
-                if (loaderText) loaderText.textContent = originalLoaderText;
-                ocrFileInput.value = '';
+                showError("Could not access clipboard. Please paste manually into the editor.");
             }
         });
     }
 
-    fileInput.addEventListener('change', async (e) => {
-        const files = Array.from(e.target.files);
+    // Dropzone Click Triggers
+    if (singleDropZone) {
+        singleDropZone.addEventListener('click', () => {
+            fileInput.value = '';
+            fileInput.multiple = false;
+            fileInput.click();
+        });
+    }
+
+    if (multiDropZone) {
+        multiDropZone.addEventListener('click', () => {
+            fileInput.value = '';
+            fileInput.multiple = true;
+            fileInput.click();
+        });
+    }
+
+    // Setup Drag and Drop Listeners
+    function setupDropzone(zone, isMulti) {
+        if (!zone) return;
+        ['dragenter', 'dragover'].forEach(eventName => {
+            zone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            zone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.remove('dragover');
+            });
+        });
+
+        zone.addEventListener('drop', (e) => {
+            const files = Array.from(e.dataTransfer.files);
+            handleIncomingFiles(files, isMulti);
+        });
+    }
+
+    setupDropzone(singleDropZone, false);
+    setupDropzone(textInput, false);
+    setupDropzone(multiDropZone, true);
+
+    // Incoming File Validation and Handler
+    const allowedExtensions = ['.txt', '.pdf', '.docx'];
+
+    function handleIncomingFiles(files, isMulti) {
         if (!files || files.length === 0) return;
 
-        const allowedExtensions = ['.txt', '.pdf', '.docx', '.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp'];
-
-        if (currentMode === 'single') {
+        if (!isMulti) {
             const file = files[0];
-            const fileName = file.name.toLowerCase();
-            const isValid = allowedExtensions.some(ext => fileName.endsWith(ext));
+            const name = file.name.toLowerCase();
+            const isValid = allowedExtensions.some(ext => name.endsWith(ext));
 
             if (!isValid) {
-                showError('Unsupported file format. Please use .txt, .pdf, .docx, or images (.png, .jpg, .jpeg, .bmp, .tiff, .webp)');
+                showError('Unsupported file format. Please upload .txt, .pdf, or .docx documents.');
                 return;
             }
 
             selectedFilesStore = [file];
+            syncFileInput();
             renderFileList();
-
-            const formData = new FormData();
-            formData.append('file', file);
-
-            showLoader(true);
-            resultsDiv.style.display = 'none';
             errorDiv.style.display = 'none';
 
-            try {
-                const response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                if (data.error) throw new Error(data.error);
-
-                textInput.value = data.text;
-                resultsDiv.style.display = 'none';
-
-            } catch (err) {
-                showError(err.message);
-            } finally {
-                showLoader(false);
-            }
+            // Extract text from the uploaded file and show it right in textInput
+            extractSingleFileText(file);
         } else {
             const validFiles = files.filter(f => {
                 const name = f.name.toLowerCase();
@@ -301,7 +331,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (validFiles.length < files.length) {
-                showError('Some files were skipped due to unsupported format. Supported formats: .txt, .pdf, .docx, and image files.');
+                showError('Some files were ignored. Only .pdf, .docx, and .txt files are accepted.');
+            } else {
+                errorDiv.style.display = 'none';
             }
 
             validFiles.forEach(f => {
@@ -313,8 +345,124 @@ document.addEventListener('DOMContentLoaded', () => {
             syncFileInput();
             renderFileList();
         }
+    }
+
+    async function extractSingleFileText(file) {
+        if (statusHintText) statusHintText.textContent = `Extracting text from "${file.name}"...`;
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const resp = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+            if (data.error) throw new Error(data.error);
+
+            if (data.text) {
+                textInput.value = data.text;
+                updateWordAndCharCount();
+
+                // Show extraction badge
+                const extractionBadge = document.getElementById('extractionBadge');
+                const extractionFileName = document.getElementById('extractionFileName');
+                if (extractionBadge && extractionFileName) {
+                    extractionBadge.style.display = 'inline-flex';
+                    extractionFileName.textContent = file.name;
+                }
+
+                if (statusHintText) {
+                    statusHintText.textContent = `Extracted text from "${file.name}". Ready to analyze.`;
+                }
+            }
+        } catch (e) {
+            showError(`Extraction failed: ${e.message}`);
+        }
+    }
+
+    fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        handleIncomingFiles(files, currentMode === 'multi');
     });
 
+    // Mode Toggle Logic
+    singleModeBtn.addEventListener('click', () => {
+        currentMode = 'single';
+        singleModeBtn.classList.add('active');
+        singleModeBtn.setAttribute('aria-selected', 'true');
+        multiModeBtn.classList.remove('active');
+        multiModeBtn.setAttribute('aria-selected', 'false');
+
+        singleInputSection.style.display = 'block';
+        multiInputSection.style.display = 'none';
+        resultsDiv.style.display = 'none';
+        if (singleResults) singleResults.style.display = 'none';
+        if (multiResults) multiResults.style.display = 'none';
+        clearAllFiles();
+        updateStatusHint();
+    });
+
+    multiModeBtn.addEventListener('click', () => {
+        currentMode = 'multi';
+        multiModeBtn.classList.add('active');
+        multiModeBtn.setAttribute('aria-selected', 'true');
+        singleModeBtn.classList.remove('active');
+        singleModeBtn.setAttribute('aria-selected', 'false');
+
+        singleInputSection.style.display = 'none';
+        multiInputSection.style.display = 'block';
+        resultsDiv.style.display = 'none';
+        if (singleResults) singleResults.style.display = 'none';
+        if (multiResults) multiResults.style.display = 'none';
+        clearAllFiles();
+        updateStatusHint();
+    });
+
+    // Analyze Click Action
+    analyzeBtn.addEventListener('click', async () => {
+        errorDiv.style.display = 'none';
+
+        if (currentMode === 'single') {
+            // Determine text to analyze
+            let textToAnalyze = textInput.value.trim();
+
+            if (!textToAnalyze && selectedFilesStore.length > 0) {
+                // If textInput is empty but a file is staged, extract it now
+                showLoader(true);
+                const formData = new FormData();
+                formData.append('file', selectedFilesStore[0]);
+                try {
+                    const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+                    const uploadData = await resp.json();
+                    if (uploadData.error) throw new Error(uploadData.error);
+                    textToAnalyze = uploadData.text;
+                    textInput.value = textToAnalyze;
+                    updateWordAndCharCount();
+                } catch (err) {
+                    showLoader(false);
+                    showError(err.message);
+                    return;
+                }
+            }
+
+            if (!textToAnalyze) {
+                showError('Please upload a document (.pdf, .docx, .txt) or enter text to analyze.');
+                return;
+            }
+
+            lastSingleText = textToAnalyze;
+            performAnalysis(textToAnalyze);
+        } else {
+            if (selectedFilesStore.length < 2) {
+                showError('Please stage at least 2 documents for cross-comparison.');
+                return;
+            }
+            performMultiAnalysis(selectedFilesStore);
+        }
+    });
+
+    // Single Analysis Runner
     async function performAnalysis(text) {
         showLoader(true);
         resultsDiv.style.display = 'none';
@@ -322,14 +470,10 @@ document.addEventListener('DOMContentLoaded', () => {
         multiResults.style.display = 'none';
         errorDiv.style.display = 'none';
 
-        // RESET needle and gauge to zero instantly before sweep
-        const needleGroup = document.getElementById('needleGroup');
-        const gaugeProgress = document.getElementById('gaugeProgress');
-        const scoreValElement = document.getElementById('scoreVal');
-
+        // Reset Gauge Elements
         if (needleGroup) needleGroup.setAttribute('transform', 'rotate(-90 100 100)');
         if (gaugeProgress) gaugeProgress.style.strokeDashoffset = '251.3';
-        if (scoreValElement) scoreValElement.textContent = '0.0%';
+        if (scoreVal) scoreVal.textContent = '0.0%';
 
         try {
             const response = await fetch('/api/analyze', {
@@ -349,11 +493,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Multi Analysis Runner
     async function performMultiAnalysis(files) {
         showLoader(true);
         resultsDiv.style.display = 'none';
-        singleResults.style.display = 'none';
-        multiResults.style.display = 'block';
+        if (singleResults) singleResults.style.display = 'none';
+        if (multiResults) multiResults.style.display = 'none';
         errorDiv.style.display = 'none';
 
         const formData = new FormData();
@@ -378,28 +523,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Display Single Results (Executive View)
     function displayResults(data, originalText) {
         lastSingleResults = data;
         lastReportId = data.report_id;
         resultsDiv.style.display = 'block';
+        if (singleResults) singleResults.style.display = 'block';
+        if (multiResults) multiResults.style.display = 'none';
 
-        const pct = data.overall_percentage || 0;
-
-        // Select SVG components
-        const scoreValElement = document.getElementById('scoreVal');
-        const needleGroup = document.getElementById('needleGroup');
-        const gaugeProgress = document.getElementById('gaugeProgress');
+        const pct = parseFloat(data.overall_percentage || data.similarity_score || 0);
+        const originality = Math.max(0, 100 - pct);
 
         // Arc tracking
         const circumference = 251.3;
 
-        // Reset elements to 0 at the start of display
+        // Reset elements
         moveNeedle(0);
         if (gaugeProgress) gaugeProgress.style.strokeDashoffset = circumference;
 
-        // Number counting and gauge animation
+        // Number animation
         let currentCount = 0;
-        const duration = 1500;
+        const duration = 1400;
         const startTime = Date.now();
 
         const updateCounter = () => {
@@ -409,21 +553,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const easedProgress = 1 - Math.pow(1 - progress, 3);
             currentCount = (pct * easedProgress).toFixed(1);
 
-            scoreValElement.textContent = `${currentCount}%`;
-
-            // Incrementally move needle along with the number animation
+            if (scoreVal) scoreVal.textContent = `${currentCount}%`;
             moveNeedle(parseFloat(currentCount));
 
-            // Incrementally update gauge progress along with the number animation
             if (gaugeProgress) {
                 const currentOffset = circumference - (parseFloat(currentCount) / 100) * circumference;
                 gaugeProgress.style.strokeDashoffset = currentOffset;
             }
 
-            if (progress < 1) requestAnimationFrame(updateCounter);
-            else {
-                scoreValElement.textContent = `${pct.toFixed(1)}%`;
-                moveNeedle(pct); // Ensure final position is exact
+            if (progress < 1) {
+                requestAnimationFrame(updateCounter);
+            } else {
+                if (scoreVal) scoreVal.textContent = `${pct.toFixed(1)}%`;
+                moveNeedle(pct);
                 if (gaugeProgress) {
                     const finalOffset = circumference - (pct / 100) * circumference;
                     gaugeProgress.style.strokeDashoffset = finalOffset;
@@ -432,140 +574,128 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         requestAnimationFrame(updateCounter);
 
-        // Match final colors to the new level boundaries (40, 60, 80)
-        if (pct < 40) scoreValElement.style.color = 'var(--success)';
-        else if (pct < 70) scoreValElement.style.color = 'var(--warning)';
-        else scoreValElement.style.color = 'var(--error)';
-
-        // Update matched documents
-        docList.innerHTML = '';
-        if (data.top_matches.length === 0) {
-            docList.innerHTML = '<li>No significant document matches found.</li>';
-        } else {
-            data.top_matches.forEach(match => {
-                const li = document.createElement('li');
-                li.className = 'match-item';
-                const link = match.source_url && match.source_url !== 'N/A' ? match.source_url : null;
-                const scoreColor = match.score >= 0.8 ? 'var(--error)' : (match.score >= 0.4 ? 'var(--warning)' : 'var(--success)');
-
-                li.innerHTML = `
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="font-weight: 600; color: var(--text-main);">${match.title}</span>
-                        ${link ? `<a href="${link}" target="_blank" style="color: var(--primary); text-decoration: none; font-size: 0.85rem; margin-top: 4px;">Visit Source ↗</a>` : ''}
-                    </div>
-                    <div style="text-align: right;">
-                        <strong style="font-size: 1.1rem; color: ${scoreColor};">${(match.score * 100).toFixed(1)}% match</strong>
-                        <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px;">${match.plagiarism_level}</div>
-                    </div>
-                `;
-                docList.appendChild(li);
-            });
-        }
-
-        // Detailed Sentence Match Table
-        const sentenceMatchList = document.getElementById('sentenceMatchList');
-        const matches = data.matches || data.plagiarized_sentences || [];
-
-        if (sentenceMatchList) {
-            sentenceMatchList.innerHTML = '';
-            if (matches.length === 0) {
-                sentenceMatchList.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-light)">No matches found</td></tr>';
+        // Risk Pill & Colors
+        if (riskBadge && riskText) {
+            riskBadge.className = 'risk-pill';
+            if (pct < 40) {
+                riskBadge.classList.add('risk-low');
+                riskText.textContent = 'Safe & Authentic';
+                if (scoreVal) scoreVal.style.color = 'var(--success)';
+            } else if (pct < 70) {
+                riskBadge.classList.add('risk-mid');
+                riskText.textContent = 'Moderate Similarity';
+                if (scoreVal) scoreVal.style.color = 'var(--warning)';
             } else {
-                matches.forEach(item => {
-                    const row = document.createElement('tr');
-                    const sentenceText = item.input || item.sentence || "";
-                    const scoreRaw = item.score !== undefined ? item.score : (item.match_score * 100);
-                    const percentage = parseFloat(scoreRaw).toFixed(1);
-
-                    // Prioritize source_url for the actual href, and source (title) for display
-                    const rawLineSource = item.source_url || item.source || "N/A";
-                    const isUrl = rawLineSource && (rawLineSource.startsWith('http') || rawLineSource.startsWith('https'));
-                    const sourceLink = isUrl ? rawLineSource : null;
-                    const displayTitle = item.source || item.title || "Source";
-
-                    const color = percentage >= 80 ? 'var(--error)' : (percentage >= 40 ? 'var(--warning)' : 'var(--success)');
-                    const level = item.plagiarism_level || (percentage >= 80 ? "High" : (percentage >= 60 ? "Moderate" : (percentage >= 40 ? "Low" : "Negligible")));
-
-                    row.innerHTML = `
-                        <td>"${sentenceText}"</td>
-                        <td class="source-cell">
-                            ${sourceLink ?
-                            `<a href="${sourceLink}" target="_blank" title="${displayTitle}" style="color: var(--primary); text-decoration: none; font-weight: 600;">View Source 🔗</a>` :
-                            `<span title="Source title: ${displayTitle}">${displayTitle}</span>`}
-                        </td>
-                        <td class="score-cell" style="color: ${color}; font-weight: bold;">${percentage}%</td>
-                        <td class="level-cell" style="font-size: 0.8rem; font-weight: 600; color: ${color}">${level}</td>
-                    `;
-                    sentenceMatchList.appendChild(row);
-                });
+                riskBadge.classList.add('risk-high');
+                riskText.textContent = 'High Plagiarism Risk';
+                if (scoreVal) scoreVal.style.color = 'var(--danger)';
             }
         }
-        // Integrated Visual Highlighting by Criticality (70/40/10)
-        let highlightedHtml = originalText;
-        const allHighlights = data.highlighted_matches || [];
 
-        // Longest match first to avoid inner-sentence corruption
-        const sortedRef = [...allHighlights].sort((a, b) => b.sentence.length - a.sentence.length);
+        // Stat Quad Population
+        if (statSimilarity) statSimilarity.textContent = `${pct.toFixed(1)}%`;
+        if (barSimilarity) barSimilarity.style.width = `${pct}%`;
 
-        sortedRef.forEach(item => {
-            const text = item.sentence;
-            if (!text) return;
+        if (statOriginality) statOriginality.textContent = `${originality.toFixed(1)}%`;
+        if (barOriginality) barOriginality.style.width = `${originality}%`;
 
-            const percentage = item.similarity_percentage;
+        const totalSent = data.total_sentences || 0;
+        const flaggedSent = Array.isArray(data.plagiarized_sentences) ? data.plagiarized_sentences.length : (data.plagiarized_sentences || 0);
 
-            // Assign CSS class based on criticality
-            let hlClass = "hl-yellow"; // default 10-40%
-            if (percentage >= 70) hlClass = "hl-red";
-            else if (percentage >= 40) hlClass = "hl-orange";
+        if (statSentences) statSentences.textContent = `${totalSent}`;
+        if (statFlaggedSentences) statFlaggedSentences.textContent = `${flaggedSent} flagged match${flaggedSent === 1 ? '' : 'es'}`;
 
-            const escapedSent = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(escapedSent, 'g');
-            const title = item.source || "Matched Source";
+        if (data.top_matches && data.top_matches.length > 0) {
+            const top = data.top_matches[0];
+            const topPct = (top.score * 100).toFixed(1);
+            if (statTopSource) statTopSource.textContent = top.title || "Matched Corpus File";
+            if (statTopSourceScore) statTopSourceScore.textContent = `${topPct}% Maximum Overlap`;
+        } else {
+            if (statTopSource) statTopSource.textContent = "No Matches Found";
+            if (statTopSourceScore) statTopSourceScore.textContent = "100% Unique Corpus";
+        }
 
-            highlightedHtml = highlightedHtml.replace(
-                regex,
-                `<span class="plagiarized-sent ${hlClass}" title="Source: ${title} (${percentage}%)">${text} <span class="similarity-pill">${percentage}%</span></span>`
-            );
-        });
-
-        highlightedBox.innerHTML = highlightedHtml;
-
-        // Wrap with expandable if it's too long
-        wrapWithExpandable(highlightedBox);
-
-        // Scroll to results
+        // Smooth Scroll to Results
         resultsDiv.scrollIntoView({ behavior: 'smooth' });
 
-        // Update History list
+        // Refresh History
         loadHistory();
     }
 
+    // Display Multi-Compare Results
     function displayMultiResults(data) {
         lastMultiResults = data;
         resultsDiv.style.display = 'block';
+        if (singleResults) singleResults.style.display = 'none';
+        if (multiResults) multiResults.style.display = 'block';
         matrixContainer.innerHTML = '';
         pairwiseList.innerHTML = '';
 
-        // 1. Render Matrix
+        const docNames = data.document_names || [];
+        const pairwise = data.pairwise_results || [];
+
+        // 1. Executive Summary Metrics Calculation
+        const totalDocs = docNames.length;
+        const totalPairs = pairwise.length;
+        let peakScore = 0;
+        let peakDocNames = "No overlap detected";
+
+        if (pairwise.length > 0) {
+            const topPair = pairwise[0]; // sorted descending by backend
+            peakScore = topPair.similarity_percentage || 0;
+            peakDocNames = `${topPair.doc1} ↔ ${topPair.doc2}`;
+        }
+
+        let avgScore = 0;
+        if (pairwise.length > 0) {
+            const totalSum = pairwise.reduce((acc, p) => acc + (p.similarity_percentage || 0), 0);
+            avgScore = totalSum / pairwise.length;
+        }
+
+        if (multiStatDocs) multiStatDocs.textContent = `${totalDocs}`;
+        if (multiStatDocsSub) multiStatDocsSub.textContent = `${totalDocs} Documents In Corpus`;
+        if (multiStatPairs) multiStatPairs.textContent = `${totalPairs}`;
+        if (multiStatPeak) {
+            multiStatPeak.textContent = `${peakScore.toFixed(1)}%`;
+            multiStatPeak.style.color = peakScore >= 70 ? 'var(--danger)' : (peakScore >= 40 ? 'var(--warning)' : 'var(--success)');
+        }
+        if (multiStatPeakPair) {
+            multiStatPeakPair.textContent = peakDocNames;
+            multiStatPeakPair.title = peakDocNames;
+        }
+        if (multiStatAvg) {
+            multiStatAvg.textContent = `${avgScore.toFixed(1)}%`;
+            multiStatAvg.style.color = avgScore >= 70 ? 'var(--danger)' : (avgScore >= 40 ? 'var(--warning)' : 'var(--success)');
+        }
+
+        // 2. Render Matrix Table
         const table = document.createElement('table');
         table.className = 'matrix-table';
 
-        // Header
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
-        headerRow.innerHTML = '<th>File Name</th>' + data.document_names.map(name => `<th>${name}</th>`).join('');
+        headerRow.innerHTML = '<th>Corpus Document</th>' + docNames.map(name => `<th>${escapeHtml(name)}</th>`).join('');
         thead.appendChild(headerRow);
         table.appendChild(thead);
 
-        // Body
         const tbody = document.createElement('tbody');
-        data.document_names.forEach(name1 => {
+        docNames.forEach(name1 => {
             const row = document.createElement('tr');
-            let rowHtml = `<th>${name1}</th>`;
-            data.document_names.forEach(name2 => {
-                const score = data.matrix[name1][name2];
-                const isHigh = score >= 70 && name1 !== name2;
-                rowHtml += `<td class="${isHigh ? 'high-sim' : ''}">${score.toFixed(1)}%</td>`;
+            let rowHtml = `<th>${escapeHtml(name1)}</th>`;
+            docNames.forEach(name2 => {
+                const score = (data.matrix && data.matrix[name1] && data.matrix[name1][name2] !== undefined)
+                    ? data.matrix[name1][name2]
+                    : (name1 === name2 ? 100 : 0);
+
+                if (name1 === name2) {
+                    rowHtml += `<td class="self-sim" title="Identical baseline (Self)">100% <span style="font-size:0.75rem; opacity:0.8;">(Self)</span></td>`;
+                } else if (score >= 70) {
+                    rowHtml += `<td class="high-sim" title="High Similarity">${score.toFixed(1)}%</td>`;
+                } else if (score >= 40) {
+                    rowHtml += `<td class="mid-sim" title="Moderate Similarity">${score.toFixed(1)}%</td>`;
+                } else {
+                    rowHtml += `<td class="low-sim" title="Low Similarity / Unique">${score.toFixed(1)}%</td>`;
+                }
             });
             row.innerHTML = rowHtml;
             tbody.appendChild(row);
@@ -573,211 +703,506 @@ document.addEventListener('DOMContentLoaded', () => {
         table.appendChild(tbody);
         matrixContainer.appendChild(table);
 
-        // 2. Render Pairwise List
-        if (data.pairwise_results.length === 0) {
-            pairwiseList.innerHTML = '<p>No significant inter-document matches found.</p>';
+        // 3. Render Pairwise Alignments
+        if (pairwise.length === 0) {
+            pairwiseList.innerHTML = '<p class="pair-details" style="padding:1.5rem; text-align:center;">No cross-document combinations available.</p>';
         } else {
-            data.pairwise_results.forEach(pair => {
+            pairwise.forEach((pair, pairIdx) => {
                 const card = document.createElement('div');
-                card.className = `pair-card ${pair.similarity_percentage >= 70 ? 'critical' : ''}`;
+                const isCrit = pair.similarity_percentage >= 70;
+                const isMid = pair.similarity_percentage >= 40 && pair.similarity_percentage < 70;
+                card.className = `pair-card ${isCrit ? 'critical' : ''}`;
 
-                const scoreColor = pair.similarity_percentage >= 70 ? '#ef4444' : (pair.similarity_percentage >= 30 ? '#f59e0b' : '#10b981');
+                const scoreColor = isCrit ? 'var(--danger)' : (isMid ? 'var(--warning)' : 'var(--success)');
+                const scoreBg = isCrit ? 'var(--danger-light)' : (isMid ? 'var(--warning-light)' : 'var(--success-light)');
+                const matchCount = pair.matching_sentences_count || (pair.matches ? pair.matches.length : 0);
+                const hasMatches = pair.matches && pair.matches.length > 0;
+                const drawerId = `pairDrawer_${pairIdx}`;
+
+                let matchesHtml = '';
+                if (hasMatches) {
+                    matchesHtml = `
+                        <div class="pair-matches-drawer" id="${drawerId}" style="display: none;">
+                            <div class="match-snippet-label">Aligned Sentence Matches (${pair.matches.length}):</div>
+                            ${pair.matches.map((m, mIdx) => {
+                                const mScore = m.similarity_percentage || m.score || 0;
+                                const mCrit = mScore >= 70;
+                                const mBadgeBg = mCrit ? 'var(--danger-light)' : 'var(--warning-light)';
+                                const mBadgeColor = mCrit ? 'var(--danger)' : 'var(--warning)';
+                                return `
+                                    <div class="match-snippet-box">
+                                        <div class="match-snippet-header">
+                                            <span style="color:var(--text-muted);">Match #${mIdx + 1}</span>
+                                            <span class="match-snippet-level" style="background:${mBadgeBg}; color:${mBadgeColor}">
+                                                ${mScore.toFixed(1)}% • ${escapeHtml(m.plagiarism_level || 'Overlap')}
+                                            </span>
+                                        </div>
+                                        <div style="margin-bottom:0.4rem;">
+                                            <span class="match-snippet-label">${escapeHtml(pair.doc1)}:</span>
+                                            <p class="match-snippet-text">"${escapeHtml(m.sentence1)}"</p>
+                                        </div>
+                                        <div>
+                                            <span class="match-snippet-label">${escapeHtml(pair.doc2)}:</span>
+                                            <p class="match-snippet-text" style="color:var(--text-muted);">"${escapeHtml(m.sentence2)}"</p>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }
 
                 card.innerHTML = `
-                    <h4>
-                        <span>${pair.doc1} <small>vs</small> ${pair.doc2}</span>
-                        <span class="score-pill" style="background: ${scoreColor}22; color: ${scoreColor}">${pair.similarity_percentage.toFixed(1)}%</span>
-                    </h4>
-                    <p class="pair-details">Found ${pair.matching_sentences_count} matching sentences between these documents.</p>
+                    <div class="pair-card-header">
+                        <div class="pair-doc-names">
+                            <span class="pair-doc-pill">
+                                <span>📄</span>
+                                <span title="${escapeHtml(pair.doc1)}">${escapeHtml(pair.doc1)}</span>
+                            </span>
+                            <span class="pair-vs-badge">VS</span>
+                            <span class="pair-doc-pill">
+                                <span>📄</span>
+                                <span title="${escapeHtml(pair.doc2)}">${escapeHtml(pair.doc2)}</span>
+                            </span>
+                        </div>
+                        <span class="pair-score-badge" style="background:${scoreBg}; color:${scoreColor}">
+                            ${pair.similarity_percentage.toFixed(1)}% Similarity
+                        </span>
+                    </div>
+                    <div class="pair-summary-bar">
+                        <span>Detected <strong>${matchCount}</strong> overlapping sentence segment${matchCount === 1 ? '' : 's'}.</span>
+                        ${hasMatches ? `
+                            <button type="button" class="btn-toggle-matches" data-drawer="${drawerId}">
+                                <span>View Matches (${pair.matches.length})</span>
+                                <span class="arrow-icon">▼</span>
+                            </button>
+                        ` : ''}
+                    </div>
+                    ${matchesHtml}
                 `;
 
-                if (pair.matches.length > 0) {
-                    const matchBox = document.createElement('div');
-                    matchBox.className = 'sentence-matches';
-                    pair.matches.slice(0, 5).forEach(m => {
-                        const mdiv = document.createElement('div');
-                        mdiv.className = 'match-pair';
-                        mdiv.innerHTML = `
-                            <div class="match-pair">
-                                <span class="label">Doc A Sentence:</span>
-                                <div>"${m.sentence1}"</div>
-                                <span class="label" style="margin-top:8px">Doc B Match (${m.score}%):</span>
-                                <div>"${m.sentence2}"</div>
-                            </div>
-                        `;
-                        matchBox.appendChild(mdiv);
+                // Bind drawer toggle
+                const toggleBtn = card.querySelector('.btn-toggle-matches');
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', () => {
+                        const targetDrawer = card.querySelector(`#${drawerId}`);
+                        const arrow = toggleBtn.querySelector('.arrow-icon');
+                        if (targetDrawer) {
+                            const isHidden = targetDrawer.style.display === 'none';
+                            targetDrawer.style.display = isHidden ? 'flex' : 'none';
+                            if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
+                        }
                     });
-                    if (pair.matches.length > 5) {
-                        const moreCount = pair.matches.length - 5;
-                        const moreBtn = document.createElement('p');
-                        moreBtn.style.cssText = 'font-size:0.8rem; color:var(--text-light); margin-top:10px; cursor:pointer;';
-                        moreBtn.textContent = `+ ${moreCount} more matches (Scroll inside card)`;
-                        matchBox.appendChild(moreBtn);
-                    }
-                    card.appendChild(matchBox);
-
-                    // Wrap with expandable for long match cards
-                    wrapWithExpandable(matchBox);
                 }
 
                 pairwiseList.appendChild(card);
             });
         }
 
+        // Smooth Scroll to Results
         resultsDiv.scrollIntoView({ behavior: 'smooth' });
     }
 
-    /**
-     * Wrap an element in an expandable container if it exceeds height limit
-     */
-    function wrapWithExpandable(target) {
-        // If target already wrapped, don't do it again
-        if (target.parentElement.classList.contains('expandable-container')) return;
-
-        // Check content height after a short delay for accurate measurement
-        setTimeout(() => {
-            const heightLimit = 280;
-            if (target.scrollHeight <= heightLimit) return;
-
-            // Create wrapper
-            const wrapper = document.createElement('div');
-            wrapper.className = 'expandable-wrapper';
-
-            // Create container
-            const container = document.createElement('div');
-            container.className = 'expandable-container';
-
-            // Move target into container
-            target.parentNode.insertBefore(wrapper, target);
-            wrapper.appendChild(container);
-            container.appendChild(target);
-
-            // Create button
-            const btn = document.createElement('button');
-            btn.className = 'read-more-btn';
-            btn.innerHTML = 'Read More ↓';
-
-            btn.onclick = () => {
-                const isExpanded = container.classList.toggle('expanded');
-                btn.innerHTML = isExpanded ? 'Read Less ↑' : 'Read More ↓';
-
-                // If collapsing, scroll to top of section
-                if (!isExpanded) {
-                    wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            };
-
-            wrapper.appendChild(btn);
-        }, 100);
-    }
-
-    /**
-     * Functional needle control
-     * @param {number} value - Percentage value (0-100)
-     */
+    // Needle Controller
     function moveNeedle(value) {
-        const needleGroup = document.getElementById('needleGroup');
         if (!needleGroup) return;
-
-        // Map 0-100 to -90deg to +90deg
         const minAngle = -90;
         const maxAngle = 90;
         const clampedValue = Math.max(0, Math.min(100, value));
         const rotation = (clampedValue * (maxAngle - minAngle) / 100) + minAngle;
-
-        // Use SVG attribute for perfect (100, 100) center baseline rotation
         needleGroup.setAttribute('transform', `rotate(${rotation} 100 100)`);
     }
+
+    // Loader with Progressive Step Ticker
+    const steps = [
+        "Parsing document structure & encoding text...",
+        "Executing sentence segmentation & N-gram tokenization...",
+        "Building TF-IDF vector representations...",
+        "Calculating Cosine & Jaccard similarity matrices...",
+        "Compiling executive metrics & PDF report..."
+    ];
 
     function showLoader(show) {
         loader.style.display = show ? 'block' : 'none';
         analyzeBtn.disabled = show;
+
+        if (show) {
+            let stepIdx = 0;
+            if (loaderStepText) loaderStepText.textContent = steps[0];
+            loaderInterval = setInterval(() => {
+                stepIdx = (stepIdx + 1) % steps.length;
+                if (loaderStepText) loaderStepText.textContent = steps[stepIdx];
+            }, 550);
+        } else {
+            if (loaderInterval) {
+                clearInterval(loaderInterval);
+                loaderInterval = null;
+            }
+        }
     }
 
     function showError(msg) {
         errorDiv.textContent = msg;
         errorDiv.style.display = 'block';
         resultsDiv.style.display = 'none';
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Download PDF Handlers
+    function triggerDownloadSingle() {
+        if (!lastReportId) {
+            showError("No report ID found. Please re-run analysis.");
+            return;
+        }
+        window.location.assign(`/api/download/${lastReportId}`);
+    }
+
+    if (downloadSingleBtn) downloadSingleBtn.addEventListener('click', triggerDownloadSingle);
+
+    if (downloadMultiBtn) {
+        downloadMultiBtn.addEventListener('click', async () => {
+            if (!lastMultiResults) return;
+            try {
+                const response = await fetch('/api/download-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 'multi', ...lastMultiResults })
+                });
+
+                if (!response.ok) throw new Error('Multi-document report generation failed.');
+
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = downloadUrl;
+                a.download = 'Multi_Comparison_Report.pdf';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(downloadUrl);
+                    document.body.removeChild(a);
+                }, 2000);
+            } catch (err) {
+                showError('Multi-report download failed: ' + err.message);
+            }
+        });
+    }
+
+    // ==========================================================================
+    // ENHANCED AUDIT HISTORY CONTROLLER (Search, Filter, Pagination, Load)
+    // ==========================================================================
+    let allAudits = [];
+    let filteredAudits = [];
+    let currentHistoryPage = 1;
+    const AUDITS_PER_PAGE = 9;
+    let activeFilter = 'all';
+    let searchQuery = '';
+
+    const historySearchInput = document.getElementById('historySearchInput');
+    const historyClearSearch = document.getElementById('historyClearSearch');
+    const filterButtons = document.querySelectorAll('.history-filter-btn');
+    const historyPagination = document.getElementById('historyPagination');
+    const historyPrevBtn = document.getElementById('historyPrevBtn');
+    const historyNextBtn = document.getElementById('historyNextBtn');
+    const historyPageIndicator = document.getElementById('historyPageIndicator');
+
+    function formatRelativeTime(dateString) {
+        if (!dateString) return 'Recent';
+        try {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffSec = Math.floor((now - date) / 1000);
+
+            if (isNaN(diffSec)) return dateString;
+            if (diffSec < 60) return 'Just now';
+            if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+            if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+            if (diffSec < 172800) return 'Yesterday';
+            return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (e) {
+            return dateString;
+        }
     }
 
     async function loadHistory() {
-        const historyList = document.getElementById('historyList');
         if (!historyList) return;
 
         try {
             const response = await fetch('/api/reports');
-            const data = await response.json();
+            allAudits = await response.json();
 
-            historyList.innerHTML = '';
-            if (data.length === 0) {
-                historyList.innerHTML = '<p style="color:var(--text-light)">No analysis history yet.</p>';
-                return;
+            if (historyCountBadge) {
+                historyCountBadge.textContent = `${allAudits.length} Audits`;
             }
 
-            // Only show last 10 in a clean grid
-            data.slice(0, 10).forEach(report => {
-                const card = document.createElement('div');
-                card.className = 'history-card';
-
-                let textColor = '#10b981';
-                if (report.percentage >= 70) textColor = '#ef4444';
-                else if (report.percentage >= 30) textColor = '#f59e0b';
-
-                card.innerHTML = `
-                    <span class="date">${new Date(report.timestamp).toLocaleDateString()}</span>
-                    <p class="preview">${report.preview}</p>
-                    <div class="score" style="color: ${textColor}">${report.percentage.toFixed(1)}%</div>
-                `;
-                historyList.appendChild(card);
-            });
+            applyHistoryFilters();
         } catch (err) {
             console.error('Failed to load history:', err);
         }
     }
 
-    async function downloadPDF(mode, data) {
-        if (mode === 'single' && lastReportId) {
-            // Direct Browser Handover (Most Robust for GET)
-            // This lets the browser's native download manager handle the file, 
-            // filename, and association automatically.
-            window.location.assign(`/api/download/${lastReportId}`);
+    function applyHistoryFilters() {
+        filteredAudits = allAudits.filter(report => {
+            const pct = parseFloat(report.percentage || 0);
+
+            // 1. Risk Filter
+            if (activeFilter === 'clean' && pct >= 40) return false;
+            if (activeFilter === 'moderate' && (pct < 40 || pct >= 70)) return false;
+            if (activeFilter === 'critical' && pct < 70) return false;
+
+            // 2. Search Query Filter
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                const previewMatch = (report.preview || '').toLowerCase().includes(q);
+                const idMatch = String(report.id).includes(q);
+                if (!previewMatch && !idMatch) return false;
+            }
+
+            return true;
+        });
+
+        currentHistoryPage = 1;
+        renderHistoryPage();
+    }
+
+    function renderHistoryPage() {
+        if (!historyList) return;
+
+        historyList.innerHTML = '';
+
+        if (filteredAudits.length === 0) {
+            historyList.innerHTML = `
+                <div class="history-empty-state">
+                    <div class="history-empty-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    </div>
+                    <div class="history-empty-title">No matching document audits</div>
+                    <p class="history-empty-sub">${searchQuery ? `No results found for "${searchQuery}".` : 'No audits match the selected filter category.'}</p>
+                    <button type="button" class="btn-reset-filters" id="resetHistoryFiltersBtn">Reset Filters</button>
+                </div>
+            `;
+
+            const resetBtn = document.getElementById('resetHistoryFiltersBtn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    activeFilter = 'all';
+                    searchQuery = '';
+                    if (historySearchInput) historySearchInput.value = '';
+                    if (historyClearSearch) historyClearSearch.style.display = 'none';
+                    filterButtons.forEach(b => b.classList.toggle('active', b.getAttribute('data-filter') === 'all'));
+                    applyHistoryFilters();
+                });
+            }
+
+            if (historyPagination) historyPagination.style.display = 'none';
             return;
         }
 
-        try {
-            // Fallback to Blob for Multi-Compare or missing IDs (requires POST)
-            const response = await fetch('/api/download-report', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode, ...data })
-            });
+        // Pagination math
+        const totalPages = Math.ceil(filteredAudits.length / AUDITS_PER_PAGE);
+        const startIdx = (currentHistoryPage - 1) * AUDITS_PER_PAGE;
+        const pageItems = filteredAudits.slice(startIdx, startIdx + AUDITS_PER_PAGE);
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Failed to download report');
+        pageItems.forEach(report => {
+            const pct = parseFloat(report.percentage || 0);
+
+            let cardClass = 'card-safe';
+            let tagClass = 'tag-safe';
+            let barClass = 'bar-safe';
+            let riskLabel = 'Clean';
+            let scoreColor = 'var(--success)';
+
+            if (pct >= 70) {
+                cardClass = 'card-high';
+                tagClass = 'tag-high';
+                barClass = 'bar-high';
+                riskLabel = 'High Risk';
+                scoreColor = 'var(--danger)';
+            } else if (pct >= 40) {
+                cardClass = 'card-mid';
+                tagClass = 'tag-mid';
+                barClass = 'bar-mid';
+                riskLabel = 'Moderate';
+                scoreColor = 'var(--warning)';
             }
 
-            const blob = await response.blob();
-            const pdfBlob = new Blob([blob], { type: 'application/pdf' });
-            const downloadUrl = window.URL.createObjectURL(pdfBlob);
+            const relativeTime = formatRelativeTime(report.timestamp);
+            const totalSent = report.total_sentences || 0;
+            const flaggedSent = report.flagged_sentences || 0;
 
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = downloadUrl;
-            a.download = mode === 'single' ? `Plagiarism_Report_${lastReportId || 'Result'}.pdf` : 'Multi_Comparison_Report.pdf';
+            const card = document.createElement('div');
+            card.className = `history-card ${cardClass}`;
 
-            document.body.appendChild(a);
-            a.click();
+            card.innerHTML = `
+                <div class="history-card-top">
+                    <div class="history-doc-info">
+                        <div class="history-doc-badge">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        </div>
+                        <div>
+                            <span class="history-doc-title">Audit #${report.id}</span>
+                            <span class="history-doc-date">${relativeTime}</span>
+                        </div>
+                    </div>
+                    <div class="history-risk-tag ${tagClass}">
+                        <span class="risk-dot"></span>
+                        <span>${riskLabel}</span>
+                    </div>
+                </div>
 
-            setTimeout(() => {
-                window.URL.revokeObjectURL(downloadUrl);
-                document.body.removeChild(a);
-            }, 2000);
-        } catch (err) {
-            showError('PDF Download failed: ' + err.message);
+                <div class="history-card-body">
+                    <p class="history-preview">"${report.preview || 'Analyzed text document'}"</p>
+                    
+                    <div class="history-meta-row">
+                        <span class="meta-item">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+                            ${totalSent} sent.
+                        </span>
+                        <span class="meta-item ${flaggedSent > 0 ? 'flagged' : ''}">
+                            ${flaggedSent} flagged
+                        </span>
+                    </div>
+
+                    <div class="history-mini-bar">
+                        <div class="mini-bar-fill ${barClass}" style="width: ${Math.min(100, Math.max(3, pct))}%"></div>
+                    </div>
+                </div>
+
+                <div class="history-card-footer">
+                    <div class="history-score-wrap">
+                        <span class="history-score-val" style="color: ${scoreColor}">${pct.toFixed(1)}%</span>
+                        <span class="history-score-label">Similarity</span>
+                    </div>
+                    <div class="history-actions">
+                        <button type="button" class="btn-history-inspect" data-id="${report.id}" title="Load text into editor">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <span>Load</span>
+                        </button>
+                        <a href="/api/download/${report.id}" class="btn-history-pdf" title="Download certified PDF report">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <span>PDF</span>
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            // Bind Load button action
+            const loadBtn = card.querySelector('.btn-history-inspect');
+            if (loadBtn) {
+                loadBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    loadAuditIntoEditor(report);
+                });
+            }
+
+            historyList.appendChild(card);
+        });
+
+        // Update Pagination Controls
+        if (historyPagination) {
+            if (totalPages > 1) {
+                historyPagination.style.display = 'flex';
+                if (historyPageIndicator) {
+                    historyPageIndicator.textContent = `Page ${currentHistoryPage} of ${totalPages} (${filteredAudits.length} audits)`;
+                }
+                if (historyPrevBtn) historyPrevBtn.disabled = currentHistoryPage <= 1;
+                if (historyNextBtn) historyNextBtn.disabled = currentHistoryPage >= totalPages;
+            } else {
+                historyPagination.style.display = 'none';
+            }
         }
     }
 
-    // Load history on page load
+    function loadAuditIntoEditor(report) {
+        if (!textInput) return;
+
+        // Switch to single mode if not already
+        if (currentMode !== 'single') {
+            singleModeBtn.click();
+        }
+
+        // Fill text into editor
+        textInput.value = report.full_text || report.preview;
+        updateWordAndCharCount();
+
+        // Show extraction badge with Audit #
+        const extractionBadge = document.getElementById('extractionBadge');
+        const extractionFileName = document.getElementById('extractionFileName');
+        if (extractionBadge && extractionFileName) {
+            extractionBadge.style.display = 'inline-flex';
+            extractionFileName.textContent = `Loaded from Audit #${report.id}`;
+        }
+
+        if (statusHintText) {
+            statusHintText.textContent = `Loaded content from Audit #${report.id} (${(report.percentage || 0).toFixed(1)}% score). Ready to re-analyze.`;
+        }
+
+        // Smooth scroll up to the workspace editor
+        const singleInput = document.getElementById('singleInputSection');
+        if (singleInput) {
+            singleInput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            textInput.focus();
+        }
+    }
+
+    // Bind Search Input
+    if (historySearchInput) {
+        historySearchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value.trim();
+            if (historyClearSearch) {
+                historyClearSearch.style.display = searchQuery ? 'block' : 'none';
+            }
+            applyHistoryFilters();
+        });
+    }
+
+    if (historyClearSearch) {
+        historyClearSearch.addEventListener('click', () => {
+            searchQuery = '';
+            if (historySearchInput) {
+                historySearchInput.value = '';
+                historySearchInput.focus();
+            }
+            historyClearSearch.style.display = 'none';
+            applyHistoryFilters();
+        });
+    }
+
+    // Bind Filter Buttons
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeFilter = btn.getAttribute('data-filter') || 'all';
+            applyHistoryFilters();
+        });
+    });
+
+    // Bind Pagination Buttons
+    if (historyPrevBtn) {
+        historyPrevBtn.addEventListener('click', () => {
+            if (currentHistoryPage > 1) {
+                currentHistoryPage--;
+                renderHistoryPage();
+                document.querySelector('.history-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
+
+    if (historyNextBtn) {
+        historyNextBtn.addEventListener('click', () => {
+            const totalPages = Math.ceil(filteredAudits.length / AUDITS_PER_PAGE);
+            if (currentHistoryPage < totalPages) {
+                currentHistoryPage++;
+                renderHistoryPage();
+                document.querySelector('.history-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
+
+    // Initialize
+    updateWordAndCharCount();
+    updateStatusHint();
     loadHistory();
 });

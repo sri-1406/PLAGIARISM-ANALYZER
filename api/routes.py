@@ -55,7 +55,12 @@ def analyze_text():
         
         # Pre-generate PDF report
         if report_id:
-            pdf_buffer = report_gen.generate_single_report(text, results)
+            pdf_buffer = report_gen.generate_single_report(
+                text, results,
+                filename="Direct_Text_Input.txt",
+                report_id=report_id,
+                file_type="RAW TEXT"
+            )
             report_path = os.path.join(REPORTS_DIR, f"report_{report_id}.pdf")
             with open(report_path, 'wb') as f:
                 f.write(pdf_buffer.getbuffer())
@@ -70,14 +75,32 @@ def get_reports():
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
-        cursor.execute('SELECT id, text, percentage, timestamp FROM reports ORDER BY timestamp DESC')
+        cursor.execute('SELECT id, text, percentage, results, timestamp FROM reports ORDER BY id DESC')
         reports = []
         for row in cursor.fetchall():
+            res_data = {}
+            if row[3]:
+                try:
+                    res_data = json.loads(row[3])
+                except Exception:
+                    pass
+
+            text_val = row[1] or ""
+            clean_preview = " ".join(text_val.split())
+            if len(clean_preview) > 130:
+                clean_preview = clean_preview[:130] + "..."
+
+            flagged = res_data.get('plagiarized_sentences', [])
+            flagged_count = len(flagged) if isinstance(flagged, list) else (flagged or 0)
+
             reports.append({
                 "id": row[0],
-                "preview": row[1][:100] + "...",
-                "percentage": row[2],
-                "timestamp": row[3]
+                "preview": clean_preview,
+                "full_text": text_val,
+                "percentage": row[2] or 0.0,
+                "total_sentences": res_data.get('total_sentences', 0),
+                "flagged_sentences": flagged_count,
+                "timestamp": row[4]
             })
         return jsonify(reports)
     except Exception as e:
@@ -87,9 +110,6 @@ def get_reports():
 
 from pypdf import PdfReader
 import docx
-from core.ocr import extract_handwritten_text
-
-IMAGE_EXTENSIONS = ('.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp')
 
 def get_text_from_file(file):
     filename = file.filename.lower()
@@ -103,35 +123,10 @@ def get_text_from_file(file):
         elif filename.endswith('.docx'):
             doc = docx.Document(file)
             content = "\n".join([para.text for para in doc.paragraphs])
-        elif filename.endswith(IMAGE_EXTENSIONS):
-            ocr_res = extract_handwritten_text(file)
-            content = ocr_res.get('text', '')
         return content
     except Exception as e:
         print(f"Error extracting text: {e}")
         return ""
-
-@api_bp.route('/ocr', methods=['POST'])
-def process_ocr():
-    """Standalone OCR endpoint to extract handwritten text from an image."""
-    if 'file' not in request.files:
-        return jsonify({"error": "No image file provided"}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No file selected"}), 400
-        
-    filename = file.filename.lower()
-    if not filename.endswith(IMAGE_EXTENSIONS):
-        return jsonify({"error": "Unsupported image format. Please upload PNG, JPG, JPEG, BMP, WEBP, or TIFF."}), 400
-
-    try:
-        res = extract_handwritten_text(file)
-        if not res.get('text'):
-            return jsonify({"error": res.get('error', 'Could not detect readable text in image.')}), 400
-        return jsonify(res)
-    except Exception as e:
-        return jsonify({"error": f"OCR extraction failed: {str(e)}"}), 500
 
 @api_bp.route('/upload', methods=['POST'])
 def upload_file():
@@ -152,7 +147,13 @@ def upload_file():
         
         # Pre-generate PDF report
         if report_id:
-            pdf_buffer = report_gen.generate_single_report(content, results)
+            ext = os.path.splitext(file.filename)[1].lstrip('.').upper() or 'PDF'
+            pdf_buffer = report_gen.generate_single_report(
+                content, results,
+                filename=file.filename,
+                report_id=report_id,
+                file_type=ext
+            )
             report_path = os.path.join(REPORTS_DIR, f"report_{report_id}.pdf")
             with open(report_path, 'wb') as f:
                 f.write(pdf_buffer.getbuffer())
@@ -197,6 +198,26 @@ def multi_check():
 def download_report_direct(report_id):
     report_path = os.path.join(REPORTS_DIR, f"report_{report_id}.pdf")
     
+    # If report file doesn't exist on disk, regenerate dynamically from database
+    if not os.path.exists(report_path):
+        try:
+            conn = sqlite3.connect(DATABASE_PATH)
+            cursor = conn.cursor()
+            cursor.execute('SELECT text, results FROM reports WHERE id=?', (report_id,))
+            row = cursor.fetchone()
+            conn.close()
+            if row:
+                text_content, results_json = row
+                results_data = json.loads(results_json) if results_json else {}
+                pdf_buffer = report_gen.generate_single_report(
+                    text_content, results_data,
+                    report_id=report_id
+                )
+                with open(report_path, 'wb') as f:
+                    f.write(pdf_buffer.getbuffer())
+        except Exception as e:
+            print(f"Error regenerating report {report_id}: {e}")
+
     if not os.path.exists(report_path):
         return jsonify({"error": "Report file not found on server."}), 404
         
@@ -229,13 +250,22 @@ def download_report_legacy():
         if mode == 'single':
             text = data.get('text', '')
             results = data.get('results', {})
-            pdf_buffer = report_gen.generate_single_report(text, results)
+            filename_val = data.get('filename') or results.get('filename') or results.get('file_name') or "Submitted_Document.pdf"
+            report_id_val = results.get('report_id') or data.get('report_id')
+            file_type_val = data.get('file_type') or results.get('file_type') or "PDF"
+            pdf_buffer = report_gen.generate_single_report(
+                text, results,
+                filename=filename_val,
+                report_id=report_id_val,
+                file_type=file_type_val
+            )
             filename = f"Plagiarism_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         else:
             doc_names = data.get('document_names', [])
             matrix = data.get('matrix', {})
             pairwise = data.get('pairwise_results', [])
-            pdf_buffer = report_gen.generate_multi_report(doc_names, matrix, pairwise)
+            report_id_val = data.get('report_id')
+            pdf_buffer = report_gen.generate_multi_report(doc_names, matrix, pairwise, report_id=report_id_val)
             filename = f"Multi_Compare_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
 
         return send_file(
