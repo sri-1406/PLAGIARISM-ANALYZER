@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plagiarism Analyzer Pro — Intelligent Document Integrity</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=13.0">
+    <title>Plagiarism Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=17.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -24,10 +24,7 @@
                         </svg>
                     </div>
                     <div class="brand-text">
-                        <div class="brand-title">
-                            Plagiarism Analyzer <span class="badge-pro">PRO</span>
-                        </div>
-                        <div class="brand-sub">Neural Integrity & Semantic Engine</div>
+                        <div class="brand-title">Plagiarism Analyzer</div>
                     </div>
                 </div>
 
@@ -41,6 +38,21 @@
                         <button id="multiMode" class="btn-mode" role="tab" aria-selected="false">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                             <span>Multi-Compare</span>
+                        </button>
+                        <button id="versionMode" class="btn-mode" role="tab" aria-selected="false">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+                            <span>Version Control</span>
+                        </button>
+                    </div>
+
+                    <!-- USER AUTH WIDGET -->
+                    <div id="navAuthWidget" class="nav-auth-widget">
+                        <button type="button" id="btnNavAuth" class="btn-nav-auth" title="Sign In">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <span id="navAuthLabel">Sign In</span>
+                        </button>
+                        <button type="button" id="btnNavLogout" class="btn-nav-logout" style="display: none;" title="Sign Out">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                         </button>
                     </div>
 
@@ -72,7 +84,7 @@
             </section>
 
             <!-- WORKSPACE INPUT CARD -->
-            <section class="card workspace-card">
+            <section id="workspaceCard" class="card workspace-card">
                 <!-- SINGLE DOCUMENT WORKSPACE -->
                 <div id="singleInputSection">
                     <!-- MAIN EXTRACTED TEXT / INPUT AREA -->
@@ -447,6 +459,370 @@
                     </div>
                 </div>
             </section>
+
+            <!-- ========================================================== -->
+            <!-- VERSION CONTROL & EVOLUTION AUDIT SECTION -->
+            <!-- ========================================================== -->
+            <section id="versionControlSection" class="vc-main-section" style="display: none;">
+                <!-- AUTH GATE (When not authenticated) -->
+                <div id="vcAuthGate" class="card vc-auth-card">
+                    <div class="vc-auth-hero">
+                        <div class="vc-auth-icon-circle">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/><path d="M12 14v3"/></svg>
+                        </div>
+                        <h2 class="vc-auth-title">Version Control & Document Evolution</h2>
+                        <p class="vc-auth-sub">
+                            Sign in or create an account to access private, permanent document versioning, 
+                            lifecycle evolution tracking, and isolated multi-metric version comparisons.
+                        </p>
+                    </div>
+
+                    <div class="vc-auth-box">
+                        <div class="vc-auth-tabs">
+                            <button type="button" class="vc-auth-tab active" id="tabVcLogin">Sign In</button>
+                            <button type="button" class="vc-auth-tab" id="tabVcRegister">Create Account</button>
+                        </div>
+
+                        <!-- LOGIN FORM -->
+                        <form id="vcLoginForm" class="vc-auth-form">
+                            <div class="form-group">
+                                <label for="vcLoginEmail">Email Address</label>
+                                <input type="email" id="vcLoginEmail" placeholder="you@university.edu" required autocomplete="email">
+                            </div>
+                            <div class="form-group">
+                                <label for="vcLoginPassword">Password</label>
+                                <input type="password" id="vcLoginPassword" placeholder="••••••••" required autocomplete="current-password">
+                            </div>
+                            <div id="vcLoginError" class="vc-auth-error" style="display: none;"></div>
+                            <button type="submit" id="btnVcSubmitLogin" class="btn-primary-hero">
+                                <span>Sign In to Version Control</span>
+                            </button>
+                        </form>
+
+                        <!-- REGISTER FORM -->
+                        <form id="vcRegisterForm" class="vc-auth-form" style="display: none;">
+                            <div class="form-group">
+                                <label for="vcRegName">Full Name</label>
+                                <input type="text" id="vcRegName" placeholder="Dr. Jane Doe" required autocomplete="name">
+                            </div>
+                            <div class="form-group">
+                                <label for="vcRegEmail">Email Address</label>
+                                <input type="email" id="vcRegEmail" placeholder="you@university.edu" required autocomplete="email">
+                            </div>
+                            <div class="form-group">
+                                <label for="vcRegPassword">Create Password</label>
+                                <input type="password" id="vcRegPassword" placeholder="Min. 4 characters" required minlength="4" autocomplete="new-password">
+                            </div>
+                            <div id="vcRegError" class="vc-auth-error" style="display: none;"></div>
+                            <button type="submit" id="btnVcSubmitRegister" class="btn-primary-hero">
+                                <span>Create Account & Continue</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- AUTHENTICATED DASHBOARD -->
+                <div id="vcDashboard" style="display: none;">
+                    <!-- EXECUTIVE TOP BAR -->
+                    <div class="vc-top-bar">
+                        <div class="vc-user-profile">
+                            <div class="vc-avatar" id="vcUserAvatar">U</div>
+                            <div>
+                                <div class="vc-user-name" id="vcUserName">Authenticated User</div>
+                                <div class="vc-user-email" id="vcUserEmail">user@example.com</div>
+                            </div>
+                            <span class="vc-badge-secure">
+                                <span class="badge-dot"></span>
+                                <span>Encrypted Isolated Workspace</span>
+                            </span>
+                        </div>
+                        <div class="vc-top-actions">
+                            <button type="button" id="btnOpenNewGroupModal" class="btn-hero-action">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                <span>New Document</span>
+                            </button>
+                            <button type="button" id="btnVcLogout" class="btn-secondary-action">
+                                <span>Sign Out</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- METRICS BAR -->
+                    <div class="vc-metrics-row">
+                        <div class="vc-stat-card">
+                            <div class="stat-icon-wrapper icon-primary">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            </div>
+                            <div class="stat-content">
+                                <span class="stat-label">Document Groups</span>
+                                <div class="stat-value" id="vcStatGroups">0</div>
+                                <span class="stat-subtext">Isolated Document Archives</span>
+                            </div>
+                        </div>
+
+                        <div class="vc-stat-card">
+                            <div class="stat-icon-wrapper icon-info">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+                            </div>
+                            <div class="stat-content">
+                                <span class="stat-label">Versions Preserved</span>
+                                <div class="stat-value" id="vcStatVersions">0</div>
+                                <span class="stat-subtext">Permanent Lifecycle Snapshots</span>
+                            </div>
+                        </div>
+
+                        <div class="vc-stat-card">
+                            <div class="stat-icon-wrapper icon-success">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div class="stat-content">
+                                <span class="stat-label">Evolution Audits</span>
+                                <div class="stat-value" id="vcStatComparisons">0</div>
+                                <span class="stat-subtext">Version Similarity Reports</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 1: MY DOCUMENT GROUPS LIST -->
+                    <div id="vcGroupsContainer" class="card vc-content-card">
+                        <div class="section-title-wrap">
+                            <div>
+                                <h3 class="section-title">My Document Repositories</h3>
+                                <p class="section-subtitle">Permanently stored documents and their historical revisions</p>
+                            </div>
+                            <div class="vc-search-wrap">
+                                <input type="text" id="vcGroupSearch" placeholder="Filter documents..." class="vc-search-input">
+                            </div>
+                        </div>
+
+                        <div id="vcGroupsList" class="vc-groups-grid"></div>
+                    </div>
+
+                    <!-- VIEW 2: GROUP DETAIL & VERSION TIMELINE (Initially hidden) -->
+                    <div id="vcGroupDetailContainer" class="card vc-content-card" style="display: none;">
+                        <div class="vc-view-header">
+                            <button type="button" id="btnBackToGroups" class="btn-back-nav">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                                <span>Back to My Documents</span>
+                            </button>
+                            <button type="button" id="btnUploadNextVersion" class="btn-hero-action">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                <span id="btnUploadNextVerLabel">+ Upload Next Version</span>
+                            </button>
+                        </div>
+
+                        <div class="vc-group-banner">
+                            <div>
+                                <span class="vc-doc-badge">DOCUMENT REPOSITORY</span>
+                                <h2 class="vc-group-title" id="vcDetailGroupTitle">Document Title</h2>
+                                <p class="vc-group-meta" id="vcDetailGroupMeta">Created on -- • 0 Versions</p>
+                            </div>
+                        </div>
+
+                        <!-- TIMELINE / VERSIONS LIST -->
+                        <div class="vc-timeline-section">
+                            <h4 class="vc-section-subhead">Permanent Version Snapshots</h4>
+                            <div id="vcVersionsList" class="vc-versions-timeline"></div>
+                        </div>
+
+                        <!-- ARBITRARY VERSION COMPARISON TOOLBAR -->
+                        <div class="vc-arbitrary-compare-box">
+                            <div class="vc-compare-prompt">
+                                <strong>Cross-Version Comparison:</strong> Select any two revisions from this repository to compare
+                            </div>
+                            <div class="vc-compare-selectors">
+                                <div class="vc-select-col">
+                                    <label for="vcSelectV1">Baseline Version:</label>
+                                    <select id="vcSelectV1" class="vc-select"></select>
+                                </div>
+                                <span class="vc-compare-vs">↔</span>
+                                <div class="vc-select-col">
+                                    <label for="vcSelectV2">Revision Version:</label>
+                                    <select id="vcSelectV2" class="vc-select"></select>
+                                </div>
+                                <button type="button" id="btnRunArbitraryCompare" class="btn-hero-action">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+                                    <span>Compare Selected</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- COMPARISON HISTORY FOR THIS GROUP -->
+                        <div class="vc-history-section">
+                            <h4 class="vc-section-subhead">Version Comparison History</h4>
+                            <div id="vcGroupComparisonsList" class="vc-comparisons-table-wrap"></div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 3: COMPARISON RESULT VIEW (Initially hidden) -->
+                    <div id="vcComparisonContainer" class="card vc-content-card" style="display: none;">
+                        <div class="vc-view-header">
+                            <button type="button" id="btnBackToGroupDetail" class="btn-back-nav">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                                <span>Back to Version Timeline</span>
+                            </button>
+                            <button type="button" id="btnDownloadVcReport" class="btn-download-hero">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                <span>Download Version PDF Report</span>
+                            </button>
+                        </div>
+
+                        <div class="vc-comparison-header-box">
+                            <div class="vc-comp-title-group">
+                                <span class="badge-pro">VERSION COMPARISON AUDIT</span>
+                                <h2 class="vc-comp-title" id="vcCompDocTitle">Document Name</h2>
+                                <p class="vc-comp-subtitle" id="vcCompVersionsSubtitle">Version 1 vs Version 2</p>
+                            </div>
+                        </div>
+
+                        <!-- DUAL KPI CARDS -->
+                        <div class="vc-kpi-grid">
+                            <div class="vc-kpi-card">
+                                <div class="vc-kpi-header">
+                                    <span class="vc-kpi-title">Version Similarity</span>
+                                    <span class="vc-pill-kpi" id="vcKpiSimBadge">Macro Overlap</span>
+                                </div>
+                                <div class="vc-kpi-score" id="vcKpiSimVal">0.0%</div>
+                                <div class="stat-bar-track">
+                                    <div class="stat-bar-fill" id="vcKpiSimBar" style="width: 0%;"></div>
+                                </div>
+                                <span class="vc-kpi-desc">Macro-level semantic & structural closeness across document versions</span>
+                            </div>
+
+                            <div class="vc-kpi-card">
+                                <div class="vc-kpi-header">
+                                    <span class="vc-kpi-title">Content Match / Plagiarism</span>
+                                    <span class="vc-pill-kpi" id="vcKpiMatchBadge">Verbatim Ratio</span>
+                                </div>
+                                <div class="vc-kpi-score" id="vcKpiMatchVal">0.0%</div>
+                                <div class="stat-bar-track">
+                                    <div class="stat-bar-fill" id="vcKpiMatchBar" style="width: 0%;"></div>
+                                </div>
+                                <span class="vc-kpi-desc">Micro-level verbatim and substantial copying ratio against baseline revision</span>
+                            </div>
+                        </div>
+
+                        <!-- CONTENT STATISTICS QUAD -->
+                        <div class="vc-stats-quad">
+                            <div class="vc-quad-item border-unchanged">
+                                <div class="vc-quad-val text-success" id="vcStatUnchanged">0</div>
+                                <div class="vc-quad-label">Unchanged Sentences</div>
+                                <div class="vc-quad-sub" id="vcStatUnchangedPct">0.0% of revision</div>
+                            </div>
+                            <div class="vc-quad-item border-modified">
+                                <div class="vc-quad-val text-warning" id="vcStatModified">0</div>
+                                <div class="vc-quad-label">Modified / Paraphrased</div>
+                                <div class="vc-quad-sub" id="vcStatModifiedPct">0.0% of revision</div>
+                            </div>
+                            <div class="vc-quad-item border-added">
+                                <div class="vc-quad-val text-info" id="vcStatAdded">0</div>
+                                <div class="vc-quad-label">Newly Added Sentences</div>
+                                <div class="vc-quad-sub" id="vcStatAddedPct">0.0% of revision</div>
+                            </div>
+                            <div class="vc-quad-item border-removed">
+                                <div class="vc-quad-val text-danger" id="vcStatRemoved">0</div>
+                                <div class="vc-quad-label">Removed Sentences</div>
+                                <div class="vc-quad-sub" id="vcStatRemovedPct">0.0% of baseline</div>
+                            </div>
+                        </div>
+
+                        <!-- EXECUTIVE REPORT DOWNLOAD & AUDIT SUMMARY CARD -->
+                        <div class="vc-report-cta-card">
+                            <div class="vc-report-cta-info">
+                                <div class="vc-report-cta-icon">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                                </div>
+                                <div>
+                                    <h4 class="vc-report-cta-title">Sentence-Level Diff & Evolution Audit Complete</h4>
+                                    <p class="vc-report-cta-desc">
+                                        All sentence comparisons, verbatim matching alignments, and 4-way classification diffs (Unchanged, Modified, Added, Removed) are compiled inside the downloadable official audit report.
+                                    </p>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-download-hero" id="btnDownloadVcReportCta">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                <span>Download Full Audit PDF Report</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODAL 1: CREATE NEW DOCUMENT GROUP -->
+                <div id="modalNewGroup" class="vc-modal-backdrop" style="display: none;">
+                    <div class="vc-modal-dialog">
+                        <div class="vc-modal-header">
+                            <h3 class="vc-modal-title">Create Document Repository</h3>
+                            <button type="button" class="vc-modal-close" id="btnCloseNewGroupModal">×</button>
+                        </div>
+                        <form id="formNewGroup">
+                            <div class="vc-modal-body">
+                                <div class="form-group">
+                                    <label for="newGroupTitle">Document Repository Name</label>
+                                    <input type="text" id="newGroupTitle" placeholder="e.g. Master Thesis / Research Paper" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Initial Document File (Version 1)</label>
+                                    <div class="vc-modal-dropzone" id="dropzoneNewGroup">
+                                        <div class="dropzone-content">
+                                            <span>📄</span>
+                                            <p id="labelNewGroupFile">Click to browse or drop .pdf, .docx, .txt</p>
+                                        </div>
+                                    </div>
+                                    <input type="file" id="fileNewGroup" accept=".txt,.pdf,.docx" style="display: none;" required>
+                                </div>
+                                <div id="errorNewGroup" class="vc-auth-error" style="display: none;"></div>
+                            </div>
+                            <div class="vc-modal-footer">
+                                <button type="button" class="btn-modal-cancel" id="btnCancelNewGroup">Cancel</button>
+                                <button type="submit" class="btn-hero-action" id="btnSubmitNewGroup">
+                                    <span>Create & Store Version 1</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- MODAL 2: UPLOAD NEXT VERSION -->
+                <div id="modalUploadVersion" class="vc-modal-backdrop" style="display: none;">
+                    <div class="vc-modal-dialog">
+                        <div class="vc-modal-header">
+                            <h3 class="vc-modal-title" id="titleUploadModal">Upload Next Version</h3>
+                            <button type="button" class="vc-modal-close" id="btnCloseUploadModal">×</button>
+                        </div>
+                        <form id="formUploadVersion">
+                            <input type="hidden" id="uploadVersionGroupId">
+                            <div class="vc-modal-body">
+                                <div class="vc-modal-group-info" id="infoUploadModalGroup">Document: --</div>
+                                
+                                <div class="form-group">
+                                    <label>New Document File</label>
+                                    <div class="vc-modal-dropzone" id="dropzoneUploadVersion">
+                                        <div class="dropzone-content">
+                                            <span>📄</span>
+                                            <p id="labelUploadVersionFile">Click to browse or drop .pdf, .docx, .txt</p>
+                                        </div>
+                                    </div>
+                                    <input type="file" id="fileUploadVersion" accept=".txt,.pdf,.docx" style="display: none;" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="selectCompareWithVer">Compare with previous version:</label>
+                                    <select id="selectCompareWithVer" class="vc-select">
+                                        <option value="">Do not compare now</option>
+                                    </select>
+                                </div>
+                                <div id="errorUploadVersion" class="vc-auth-error" style="display: none;"></div>
+                            </div>
+                            <div class="vc-modal-footer">
+                                <button type="button" class="btn-modal-cancel" id="btnCancelUploadModal">Cancel</button>
+                                <button type="submit" class="btn-hero-action" id="btnSubmitUploadVersion">
+                                    <span>Upload & Save Version</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
         </main>
 
         <!-- FOOTER -->
@@ -462,7 +838,7 @@
         </footer>
     </div>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}?v=13.00"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}?v=17.00"></script>
 </body>
 
 </html>

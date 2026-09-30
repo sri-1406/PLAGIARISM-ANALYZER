@@ -34,4 +34,7 @@ data/private_versions/
 data/temp_uploads/
 data/user_uploads/
 *.joblib
+storage/version_control/*
+!storage/version_control/.gitkeep
+scratch/
 

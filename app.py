@@ -2,13 +2,18 @@ import os
 import sqlite3
 from flask import Flask, render_template
 from api.routes import api_bp
+from api.version_routes import version_bp, init_vc_db
 
 app = Flask(__name__, 
             static_folder='ui/static',
             template_folder='ui/templates')
 
-# Register the API blueprint
+# Configure secret key for session-based user authentication
+app.secret_key = os.environ.get('SECRET_KEY', 'plagiarism_analyzer_secure_session_key_2026')
+
+# Register the API blueprints
 app.register_blueprint(api_bp, url_prefix='/api')
+app.register_blueprint(version_bp, url_prefix='/api')
 
 DATABASE_PATH = 'database.db'
 
@@ -27,6 +32,7 @@ def init_db():
         ''')
         conn.commit()
         conn.close()
+    init_vc_db()
 
 @app.route('/')
 def index():

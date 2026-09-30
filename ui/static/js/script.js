@@ -22,8 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mode Toggle
     const singleModeBtn = document.getElementById('singleMode');
     const multiModeBtn = document.getElementById('multiMode');
+    const versionModeBtn = document.getElementById('versionMode');
+    const workspaceCard = document.getElementById('workspaceCard');
     const singleInputSection = document.getElementById('singleInputSection');
     const multiInputSection = document.getElementById('multiInputSection');
+    const versionControlSection = document.getElementById('versionControlSection');
     const singleResults = document.getElementById('singleResults');
     const multiResults = document.getElementById('multiResults');
     const themeToggle = document.getElementById('themeToggle');
@@ -92,12 +95,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
-    themeToggle.addEventListener('click', () => {
-        const activeTheme = document.documentElement.getAttribute('data-theme');
-        const nextTheme = activeTheme === 'light' ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', nextTheme);
-        localStorage.setItem('theme', nextTheme);
-    });
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const activeTheme = document.documentElement.getAttribute('data-theme');
+            const nextTheme = activeTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', nextTheme);
+            localStorage.setItem('theme', nextTheme);
+        });
+    }
 
     // Helper: File Type Formatting
     function getFileIcon(filename) {
@@ -381,46 +386,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    fileInput.addEventListener('change', (e) => {
-        const files = Array.from(e.target.files);
-        handleIncomingFiles(files, currentMode === 'multi');
-    });
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            handleIncomingFiles(files, currentMode === 'multi');
+        });
+    }
 
     // Mode Toggle Logic
-    singleModeBtn.addEventListener('click', () => {
-        currentMode = 'single';
-        singleModeBtn.classList.add('active');
-        singleModeBtn.setAttribute('aria-selected', 'true');
-        multiModeBtn.classList.remove('active');
-        multiModeBtn.setAttribute('aria-selected', 'false');
+    function activateMode(mode) {
+        currentMode = mode;
+        if (singleModeBtn) {
+            singleModeBtn.classList.toggle('active', mode === 'single');
+            singleModeBtn.setAttribute('aria-selected', mode === 'single' ? 'true' : 'false');
+        }
+        if (multiModeBtn) {
+            multiModeBtn.classList.toggle('active', mode === 'multi');
+            multiModeBtn.setAttribute('aria-selected', mode === 'multi' ? 'true' : 'false');
+        }
+        if (versionModeBtn) {
+            versionModeBtn.classList.toggle('active', mode === 'version');
+            versionModeBtn.setAttribute('aria-selected', mode === 'version' ? 'true' : 'false');
+        }
 
-        singleInputSection.style.display = 'block';
-        multiInputSection.style.display = 'none';
-        resultsDiv.style.display = 'none';
-        if (singleResults) singleResults.style.display = 'none';
-        if (multiResults) multiResults.style.display = 'none';
-        clearAllFiles();
-        updateStatusHint();
-    });
+        if (mode === 'version') {
+            if (workspaceCard) workspaceCard.style.display = 'none';
+            if (resultsDiv) resultsDiv.style.display = 'none';
+            if (versionControlSection) versionControlSection.style.display = 'flex';
+            checkVcAuthStatus();
+        } else {
+            if (workspaceCard) workspaceCard.style.display = 'block';
+            if (versionControlSection) versionControlSection.style.display = 'none';
+            if (singleInputSection) singleInputSection.style.display = mode === 'single' ? 'block' : 'none';
+            if (multiInputSection) multiInputSection.style.display = mode === 'multi' ? 'block' : 'none';
+            if (resultsDiv) resultsDiv.style.display = 'none';
+            if (singleResults) singleResults.style.display = 'none';
+            if (multiResults) multiResults.style.display = 'none';
+            clearAllFiles();
+            updateStatusHint();
+        }
+    }
 
-    multiModeBtn.addEventListener('click', () => {
-        currentMode = 'multi';
-        multiModeBtn.classList.add('active');
-        multiModeBtn.setAttribute('aria-selected', 'true');
-        singleModeBtn.classList.remove('active');
-        singleModeBtn.setAttribute('aria-selected', 'false');
-
-        singleInputSection.style.display = 'none';
-        multiInputSection.style.display = 'block';
-        resultsDiv.style.display = 'none';
-        if (singleResults) singleResults.style.display = 'none';
-        if (multiResults) multiResults.style.display = 'none';
-        clearAllFiles();
-        updateStatusHint();
-    });
+    if (singleModeBtn) singleModeBtn.addEventListener('click', () => activateMode('single'));
+    if (multiModeBtn) multiModeBtn.addEventListener('click', () => activateMode('multi'));
+    if (versionModeBtn) {
+        versionModeBtn.addEventListener('click', () => activateMode('version'));
+    }
 
     // Analyze Click Action
-    analyzeBtn.addEventListener('click', async () => {
+    if (analyzeBtn) {
+        analyzeBtn.addEventListener('click', async () => {
         errorDiv.style.display = 'none';
 
         if (currentMode === 'single') {
@@ -461,6 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
             performMultiAnalysis(selectedFilesStore);
         }
     });
+    }
 
     // Single Analysis Runner
     async function performAnalysis(text) {
@@ -1201,8 +1217,906 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // =========================================================================
+    // VERSION CONTROL & DOCUMENT EVOLUTION AUDIT MODULE
+    // =========================================================================
+    let vcCurrentUser = null;
+    let vcGroupsCache = [];
+    let vcCurrentGroup = null;
+    let vcCurrentComparison = null;
+
+    // Elements
+    const navAuthWidget = document.getElementById('navAuthWidget');
+    const btnNavAuth = document.getElementById('btnNavAuth');
+    const navAuthLabel = document.getElementById('navAuthLabel');
+    const btnNavLogout = document.getElementById('btnNavLogout');
+
+    const vcAuthGate = document.getElementById('vcAuthGate');
+    const tabVcLogin = document.getElementById('tabVcLogin');
+    const tabVcRegister = document.getElementById('tabVcRegister');
+    const vcLoginForm = document.getElementById('vcLoginForm');
+    const vcLoginEmail = document.getElementById('vcLoginEmail');
+    const vcLoginPassword = document.getElementById('vcLoginPassword');
+    const vcLoginError = document.getElementById('vcLoginError');
+    const btnVcSubmitLogin = document.getElementById('btnVcSubmitLogin');
+
+    const vcRegisterForm = document.getElementById('vcRegisterForm');
+    const vcRegName = document.getElementById('vcRegName');
+    const vcRegEmail = document.getElementById('vcRegEmail');
+    const vcRegPassword = document.getElementById('vcRegPassword');
+    const vcRegError = document.getElementById('vcRegError');
+    const btnVcSubmitRegister = document.getElementById('btnVcSubmitRegister');
+
+    const vcDashboard = document.getElementById('vcDashboard');
+    const vcUserName = document.getElementById('vcUserName');
+    const vcUserEmail = document.getElementById('vcUserEmail');
+    const vcUserAvatar = document.getElementById('vcUserAvatar');
+    const btnVcLogout = document.getElementById('btnVcLogout');
+
+    const vcStatGroups = document.getElementById('vcStatGroups');
+    const vcStatVersions = document.getElementById('vcStatVersions');
+    const vcStatComparisons = document.getElementById('vcStatComparisons');
+
+    const vcGroupsContainer = document.getElementById('vcGroupsContainer');
+    const vcGroupSearch = document.getElementById('vcGroupSearch');
+    const vcGroupsList = document.getElementById('vcGroupsList');
+    const btnOpenNewGroupModal = document.getElementById('btnOpenNewGroupModal');
+
+    const vcGroupDetailContainer = document.getElementById('vcGroupDetailContainer');
+    const btnBackToGroups = document.getElementById('btnBackToGroups');
+    const btnUploadNextVersion = document.getElementById('btnUploadNextVersion');
+    const vcDetailGroupTitle = document.getElementById('vcDetailGroupTitle');
+    const vcDetailGroupMeta = document.getElementById('vcDetailGroupMeta');
+    const vcVersionsList = document.getElementById('vcVersionsList');
+    const vcSelectV1 = document.getElementById('vcSelectV1');
+    const vcSelectV2 = document.getElementById('vcSelectV2');
+    const btnRunArbitraryCompare = document.getElementById('btnRunArbitraryCompare');
+    const vcGroupComparisonsList = document.getElementById('vcGroupComparisonsList');
+
+    const vcComparisonContainer = document.getElementById('vcComparisonContainer');
+    const btnBackToGroupDetail = document.getElementById('btnBackToGroupDetail');
+    const btnDownloadVcReport = document.getElementById('btnDownloadVcReport');
+    const vcCompDocTitle = document.getElementById('vcCompDocTitle');
+    const vcCompVersionsSubtitle = document.getElementById('vcCompVersionsSubtitle');
+    const vcKpiSimVal = document.getElementById('vcKpiSimVal');
+    const vcKpiSimBar = document.getElementById('vcKpiSimBar');
+    const vcKpiMatchVal = document.getElementById('vcKpiMatchVal');
+    const vcKpiMatchBar = document.getElementById('vcKpiMatchBar');
+
+    const vcStatUnchanged = document.getElementById('vcStatUnchanged');
+    const vcStatUnchangedPct = document.getElementById('vcStatUnchangedPct');
+    const vcStatModified = document.getElementById('vcStatModified');
+    const vcStatModifiedPct = document.getElementById('vcStatModifiedPct');
+    const vcStatAdded = document.getElementById('vcStatAdded');
+    const vcStatAddedPct = document.getElementById('vcStatAddedPct');
+    const vcStatRemoved = document.getElementById('vcStatRemoved');
+    const vcStatRemovedPct = document.getElementById('vcStatRemovedPct');
+
+    const btnDownloadVcReportCta = document.getElementById('btnDownloadVcReportCta');
+
+    // Modals
+    const modalNewGroup = document.getElementById('modalNewGroup');
+    const btnCloseNewGroupModal = document.getElementById('btnCloseNewGroupModal');
+    const btnCancelNewGroup = document.getElementById('btnCancelNewGroup');
+    const formNewGroup = document.getElementById('formNewGroup');
+    const newGroupTitle = document.getElementById('newGroupTitle');
+    const dropzoneNewGroup = document.getElementById('dropzoneNewGroup');
+    const fileNewGroup = document.getElementById('fileNewGroup');
+    const labelNewGroupFile = document.getElementById('labelNewGroupFile');
+    const errorNewGroup = document.getElementById('errorNewGroup');
+
+    const modalUploadVersion = document.getElementById('modalUploadVersion');
+    const btnCloseUploadModal = document.getElementById('btnCloseUploadModal');
+    const btnCancelUploadModal = document.getElementById('btnCancelUploadModal');
+    const formUploadVersion = document.getElementById('formUploadVersion');
+    const uploadVersionGroupId = document.getElementById('uploadVersionGroupId');
+    const infoUploadModalGroup = document.getElementById('infoUploadModalGroup');
+    const dropzoneUploadVersion = document.getElementById('dropzoneUploadVersion');
+    const fileUploadVersion = document.getElementById('fileUploadVersion');
+    const labelUploadVersionFile = document.getElementById('labelUploadVersionFile');
+    const selectCompareWithVer = document.getElementById('selectCompareWithVer');
+    const errorUploadVersion = document.getElementById('errorUploadVersion');
+
+    // Check Auth Status
+    async function checkVcAuthStatus() {
+        try {
+            const resp = await fetch('/api/auth/status');
+            const data = await resp.json();
+            if (data.authenticated && data.user) {
+                vcCurrentUser = data.user;
+                if (navAuthLabel) navAuthLabel.textContent = data.user.name || data.user.email;
+                if (btnNavLogout) btnNavLogout.style.display = 'inline-flex';
+                if (vcUserName) vcUserName.textContent = data.user.name || 'User';
+                if (vcUserEmail) vcUserEmail.textContent = data.user.email;
+                if (vcUserAvatar) vcUserAvatar.textContent = (data.user.name || data.user.email || 'U')[0].toUpperCase();
+
+                if (currentMode === 'version') {
+                    if (vcAuthGate) vcAuthGate.style.display = 'none';
+                    if (vcDashboard) vcDashboard.style.display = 'block';
+                    loadVcGroups();
+                }
+            } else {
+                vcCurrentUser = null;
+                if (navAuthLabel) navAuthLabel.textContent = 'Sign In';
+                if (btnNavLogout) btnNavLogout.style.display = 'none';
+
+                if (currentMode === 'version') {
+                    if (vcAuthGate) vcAuthGate.style.display = 'block';
+                    if (vcDashboard) vcDashboard.style.display = 'none';
+                }
+            }
+        } catch (err) {
+            console.error('VC auth check failed:', err);
+        }
+    }
+
+    // Auth Switchers
+    if (tabVcLogin) {
+        tabVcLogin.addEventListener('click', () => {
+            tabVcLogin.classList.add('active');
+            if (tabVcRegister) tabVcRegister.classList.remove('active');
+            if (vcLoginForm) vcLoginForm.style.display = 'flex';
+            if (vcRegisterForm) vcRegisterForm.style.display = 'none';
+            if (vcLoginError) vcLoginError.style.display = 'none';
+        });
+    }
+
+    if (tabVcRegister) {
+        tabVcRegister.addEventListener('click', () => {
+            tabVcRegister.classList.add('active');
+            if (tabVcLogin) tabVcLogin.classList.remove('active');
+            if (vcRegisterForm) vcRegisterForm.style.display = 'flex';
+            if (vcLoginForm) vcLoginForm.style.display = 'none';
+            if (vcRegError) vcRegError.style.display = 'none';
+        });
+    }
+
+    // Submit Login
+    if (vcLoginForm) {
+        vcLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (vcLoginError) vcLoginError.style.display = 'none';
+            const email = vcLoginEmail.value.trim();
+            const password = vcLoginPassword.value;
+            if (!email || !password) return;
+
+            try {
+                if (btnVcSubmitLogin) btnVcSubmitLogin.disabled = true;
+                const resp = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await resp.json();
+                if (resp.ok && data.user) {
+                    vcLoginForm.reset();
+                    await checkVcAuthStatus();
+                } else {
+                    if (vcLoginError) {
+                        vcLoginError.textContent = data.error || 'Authentication failed.';
+                        vcLoginError.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                if (vcLoginError) {
+                    vcLoginError.textContent = 'Server connection error: ' + err.message;
+                    vcLoginError.style.display = 'block';
+                }
+            } finally {
+                if (btnVcSubmitLogin) btnVcSubmitLogin.disabled = false;
+            }
+        });
+    }
+
+    // Submit Register
+    if (vcRegisterForm) {
+        vcRegisterForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (vcRegError) vcRegError.style.display = 'none';
+            const name = vcRegName.value.trim();
+            const email = vcRegEmail.value.trim();
+            const password = vcRegPassword.value;
+            if (!name || !email || !password) return;
+
+            try {
+                if (btnVcSubmitRegister) btnVcSubmitRegister.disabled = true;
+                const resp = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                const data = await resp.json();
+                if (resp.ok && data.user) {
+                    vcRegisterForm.reset();
+                    await checkVcAuthStatus();
+                } else {
+                    if (vcRegError) {
+                        vcRegError.textContent = data.error || 'Registration failed.';
+                        vcRegError.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                if (vcRegError) {
+                    vcRegError.textContent = 'Server connection error: ' + err.message;
+                    vcRegError.style.display = 'block';
+                }
+            } finally {
+                if (btnVcSubmitRegister) btnVcSubmitRegister.disabled = false;
+            }
+        });
+    }
+
+    // Logout
+    async function handleVcLogout() {
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+        } catch (e) {
+            console.error('Logout error:', e);
+        }
+        vcCurrentUser = null;
+        await checkVcAuthStatus();
+    }
+
+    if (btnVcLogout) btnVcLogout.addEventListener('click', handleVcLogout);
+    if (btnNavLogout) btnNavLogout.addEventListener('click', handleVcLogout);
+
+    if (btnNavAuth) {
+        btnNavAuth.addEventListener('click', () => {
+            activateMode('version');
+        });
+    }
+
+    // Load Document Groups
+    async function loadVcGroups() {
+        if (!vcCurrentUser) return;
+        try {
+            const resp = await fetch('/api/vc/groups');
+            const data = await resp.json();
+            if (!resp.ok) {
+                if (resp.status === 401) checkVcAuthStatus();
+                return;
+            }
+
+            vcGroupsCache = data.groups || [];
+            if (vcStatGroups) vcStatGroups.textContent = data.total_groups || vcGroupsCache.length;
+            if (vcStatVersions) vcStatVersions.textContent = data.total_versions || 0;
+            if (vcStatComparisons) vcStatComparisons.textContent = data.total_comparisons || 0;
+
+            renderVcGroups(vcGroupsCache);
+        } catch (err) {
+            console.error('Failed to load VC groups:', err);
+        }
+    }
+
+    function renderVcGroups(groups) {
+        if (!vcGroupsList) return;
+        if (!groups || groups.length === 0) {
+            vcGroupsList.innerHTML = `
+                <div class="history-empty-state">
+                    <div class="history-empty-icon">📁</div>
+                    <div class="history-empty-title">No Document Repositories Yet</div>
+                    <p class="history-empty-sub">Create your first repository with an initial version to track changes and evolution over time.</p>
+                    <button type="button" class="btn-hero-action btn-empty-hero" id="btnEmptyCreateGroup">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span>Create First Repository</span>
+                    </button>
+                </div>
+            `;
+            const emptyBtn = document.getElementById('btnEmptyCreateGroup');
+            if (emptyBtn) emptyBtn.addEventListener('click', openNewGroupModal);
+            return;
+        }
+
+        let html = '';
+        groups.forEach(g => {
+            const vCount = g.version_count || 1;
+            const vText = `${vCount} Version${vCount === 1 ? '' : 's'}`;
+            html += `
+                <div class="vc-group-card" data-id="${g.id}">
+                    <div>
+                        <div class="vc-group-card-header">
+                            <h4 class="vc-group-card-title">${escapeHtml(g.name)}</h4>
+                            <span class="vc-group-card-badge">${vText}</span>
+                        </div>
+                        <div class="vc-group-card-meta">
+                            <div><strong>Latest File:</strong> ${escapeHtml(g.latest_filename || '—')}</div>
+                            <div><strong>Updated:</strong> ${g.updated_at || g.created_at}</div>
+                        </div>
+                    </div>
+                    <div class="vc-group-card-actions">
+                        <button type="button" class="btn-card-action btn-open-group" data-id="${g.id}">
+                            <span>Open Repository &rarr;</span>
+                        </button>
+                        <button type="button" class="btn-card-del btn-del-group" data-id="${g.id}" title="Delete repository">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        vcGroupsList.innerHTML = html;
+
+        // Wire group cards
+        vcGroupsList.querySelectorAll('.btn-open-group').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const gid = e.currentTarget.getAttribute('data-id');
+                openGroupDetail(gid);
+            });
+        });
+
+        vcGroupsList.querySelectorAll('.vc-group-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('button')) return;
+                const gid = card.getAttribute('data-id');
+                openGroupDetail(gid);
+            });
+        });
+
+        vcGroupsList.querySelectorAll('.btn-del-group').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const gid = e.currentTarget.getAttribute('data-id');
+                if (!confirm('Are you sure you want to permanently delete this document repository and ALL its version snapshots?')) return;
+
+                try {
+                    const resp = await fetch(`/api/vc/groups/${gid}`, { method: 'DELETE' });
+                    if (resp.ok) {
+                        loadVcGroups();
+                    } else {
+                        const d = await resp.json();
+                        alert(d.error || 'Failed to delete repository.');
+                    }
+                } catch (err) {
+                    alert('Delete failed: ' + err.message);
+                }
+            });
+        });
+    }
+
+    // Filter Groups
+    if (vcGroupSearch) {
+        vcGroupSearch.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            if (!query) {
+                renderVcGroups(vcGroupsCache);
+                return;
+            }
+            const filtered = vcGroupsCache.filter(g =>
+                (g.name && g.name.toLowerCase().includes(query)) ||
+                (g.latest_filename && g.latest_filename.toLowerCase().includes(query))
+            );
+            renderVcGroups(filtered);
+        });
+    }
+
+    // Modal: New Group
+    function openNewGroupModal() {
+        if (formNewGroup) formNewGroup.reset();
+        if (labelNewGroupFile) labelNewGroupFile.textContent = 'Click to browse or drop .pdf, .docx, .txt';
+        if (errorNewGroup) errorNewGroup.style.display = 'none';
+        if (modalNewGroup) modalNewGroup.style.display = 'flex';
+    }
+
+    function closeNewGroupModal() {
+        if (modalNewGroup) modalNewGroup.style.display = 'none';
+    }
+
+    if (btnOpenNewGroupModal) btnOpenNewGroupModal.addEventListener('click', openNewGroupModal);
+    if (btnCloseNewGroupModal) btnCloseNewGroupModal.addEventListener('click', closeNewGroupModal);
+    if (btnCancelNewGroup) btnCancelNewGroup.addEventListener('click', closeNewGroupModal);
+
+    if (dropzoneNewGroup && fileNewGroup) {
+        dropzoneNewGroup.addEventListener('click', () => fileNewGroup.click());
+        fileNewGroup.addEventListener('change', () => {
+            if (fileNewGroup.files.length > 0) {
+                labelNewGroupFile.textContent = fileNewGroup.files[0].name;
+            }
+        });
+        dropzoneNewGroup.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzoneNewGroup.classList.add('dragover');
+        });
+        dropzoneNewGroup.addEventListener('dragleave', () => dropzoneNewGroup.classList.remove('dragover'));
+        dropzoneNewGroup.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzoneNewGroup.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                fileNewGroup.files = e.dataTransfer.files;
+                labelNewGroupFile.textContent = e.dataTransfer.files[0].name;
+            }
+        });
+    }
+
+    if (formNewGroup) {
+        formNewGroup.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (errorNewGroup) errorNewGroup.style.display = 'none';
+            const title = newGroupTitle.value.trim();
+            const file = fileNewGroup.files[0];
+            if (!title || !file) {
+                if (errorNewGroup) {
+                    errorNewGroup.textContent = 'Please provide a repository name and an initial document file.';
+                    errorNewGroup.style.display = 'block';
+                }
+                return;
+            }
+
+            const submitBtn = document.getElementById('btnSubmitNewGroup');
+            try {
+                if (submitBtn) submitBtn.disabled = true;
+                const fd = new FormData();
+                fd.append('name', title);
+                fd.append('file', file);
+
+                const resp = await fetch('/api/vc/groups', {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await resp.json();
+                if (resp.ok && data.group_id) {
+                    closeNewGroupModal();
+                    await loadVcGroups();
+                    openGroupDetail(data.group_id);
+                } else {
+                    if (errorNewGroup) {
+                        errorNewGroup.textContent = data.error || 'Failed to create repository.';
+                        errorNewGroup.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                if (errorNewGroup) {
+                    errorNewGroup.textContent = 'Upload failed: ' + err.message;
+                    errorNewGroup.style.display = 'block';
+                }
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        });
+    }
+
+    // Open Group Detail
+    async function openGroupDetail(groupId) {
+        try {
+            const resp = await fetch(`/api/vc/groups/${groupId}`);
+            const data = await resp.json();
+            if (!resp.ok) {
+                alert(data.error || 'Failed to load group details.');
+                return;
+            }
+
+            vcCurrentGroup = data.group;
+            if (vcGroupsContainer) vcGroupsContainer.style.display = 'none';
+            if (vcComparisonContainer) vcComparisonContainer.style.display = 'none';
+            if (vcGroupDetailContainer) vcGroupDetailContainer.style.display = 'block';
+
+            if (vcDetailGroupTitle) vcDetailGroupTitle.textContent = data.group.name;
+            if (vcDetailGroupMeta) {
+                vcDetailGroupMeta.textContent = `Created: ${data.group.created_at} • ${data.versions.length} Version Snapshots`;
+            }
+
+            // Render Timeline
+            renderVersionsTimeline(data.versions);
+
+            // Populate selectors for arbitrary comparison
+            populateCompareSelectors(data.versions);
+
+            // Render comparison history
+            renderGroupComparisons(data.comparisons);
+        } catch (err) {
+            console.error('Error opening group detail:', err);
+        }
+    }
+
+    function renderVersionsTimeline(versions) {
+        if (!vcVersionsList) return;
+        if (!versions || versions.length === 0) {
+            vcVersionsList.innerHTML = '<p class="vc-empty-hint">No versions found.</p>';
+            return;
+        }
+
+        let html = '';
+        versions.forEach(v => {
+            const sizeStr = v.file_size ? `${(v.file_size / 1024).toFixed(1)} KB` : '';
+            const wordsStr = v.word_count ? `${v.word_count} words` : '';
+            const sentencesStr = v.sentence_count ? `${v.sentence_count} sentences` : '';
+            const metaParts = [sizeStr, wordsStr, sentencesStr, v.created_at].filter(Boolean).join(' • ');
+
+            html += `
+                <div class="vc-version-card">
+                    <div class="vc-version-left">
+                        <div class="vc-version-badge">V${v.version_number}</div>
+                        <div>
+                            <div class="vc-version-num">Version ${v.version_number}</div>
+                            <div class="vc-version-filename">${escapeHtml(v.filename)}</div>
+                            <div class="vc-version-meta">${metaParts}</div>
+                        </div>
+                    </div>
+                    <div class="vc-version-actions">
+                        <a href="/api/vc/versions/${v.id}/download" class="btn-version-dl" title="Download original file">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <span>Download</span>
+                        </a>
+                        ${versions.length > 1 ? `
+                            <button type="button" class="btn-version-del btn-del-version" data-id="${v.id}" title="Delete this version">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        vcVersionsList.innerHTML = html;
+
+        // Wire delete version buttons
+        vcVersionsList.querySelectorAll('.btn-del-version').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const vid = btn.getAttribute('data-id');
+                if (!confirm('Are you sure you want to delete this version snapshot?')) return;
+                try {
+                    const resp = await fetch(`/api/vc/versions/${vid}`, { method: 'DELETE' });
+                    if (resp.ok) {
+                        openGroupDetail(vcCurrentGroup.id);
+                    } else {
+                        const d = await resp.json();
+                        alert(d.error || 'Failed to delete version.');
+                    }
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                }
+            });
+        });
+    }
+
+    function populateCompareSelectors(versions) {
+        if (!vcSelectV1 || !vcSelectV2) return;
+        vcSelectV1.innerHTML = '';
+        vcSelectV2.innerHTML = '';
+
+        if (!versions || versions.length < 2) {
+            vcSelectV1.innerHTML = '<option value="">Need at least 2 versions</option>';
+            vcSelectV2.innerHTML = '<option value="">Need at least 2 versions</option>';
+            if (btnRunArbitraryCompare) btnRunArbitraryCompare.disabled = true;
+            return;
+        }
+
+        if (btnRunArbitraryCompare) btnRunArbitraryCompare.disabled = false;
+
+        versions.forEach((v) => {
+            const opt1 = document.createElement('option');
+            opt1.value = v.id;
+            opt1.textContent = `V${v.version_number}: ${v.filename}`;
+            vcSelectV1.appendChild(opt1);
+
+            const opt2 = document.createElement('option');
+            opt2.value = v.id;
+            opt2.textContent = `V${v.version_number}: ${v.filename}`;
+            vcSelectV2.appendChild(opt2);
+        });
+
+        // Set default: V1 = first version, V2 = latest version
+        vcSelectV1.selectedIndex = 0;
+        vcSelectV2.selectedIndex = versions.length - 1;
+    }
+
+    function renderGroupComparisons(comparisons) {
+        if (!vcGroupComparisonsList) return;
+        if (!comparisons || comparisons.length === 0) {
+            vcGroupComparisonsList.innerHTML = '<p class="vc-empty-hint" style="padding: 1.25rem; color: var(--text-muted); font-size: 0.88rem;">No version comparisons generated yet. Use the comparison toolbar above or upload next version with auto-comparison.</p>';
+            return;
+        }
+
+        let html = `
+            <table class="vc-table">
+                <thead>
+                    <tr>
+                        <th>Baseline</th>
+                        <th>Revision</th>
+                        <th>Version Sim.</th>
+                        <th>Content Match</th>
+                        <th>Comparison Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        comparisons.forEach(c => {
+            const simPct = (c.version_similarity || 0).toFixed(1) + '%';
+            const matchPct = (c.matching_percentage || 0).toFixed(1) + '%';
+            html += `
+                <tr>
+                    <td><strong>V${c.prev_version_number}</strong> (${escapeHtml(c.prev_filename)})</td>
+                    <td><strong>V${c.new_version_number}</strong> (${escapeHtml(c.new_filename)})</td>
+                    <td><span class="badge-status badge-status-modified">${simPct}</span></td>
+                    <td><span class="badge-status badge-status-unchanged">${matchPct}</span></td>
+                    <td>${c.created_at}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button type="button" class="btn-card-action btn-inspect-comp" data-id="${c.id}">
+                                Inspect Diff
+                            </button>
+                            <a href="/api/vc/comparisons/${c.id}/report" class="btn-version-dl" title="Download Official PDF Audit Report">
+                                <span>PDF</span>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        vcGroupComparisonsList.innerHTML = html;
+
+        vcGroupComparisonsList.querySelectorAll('.btn-inspect-comp').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const cid = btn.getAttribute('data-id');
+                loadComparisonById(cid);
+            });
+        });
+    }
+
+    // Modal: Upload Next Version
+    function openUploadVersionModal() {
+        if (!vcCurrentGroup) return;
+        if (formUploadVersion) formUploadVersion.reset();
+        if (uploadVersionGroupId) uploadVersionGroupId.value = vcCurrentGroup.id;
+        if (infoUploadModalGroup) infoUploadModalGroup.textContent = `Repository: ${vcCurrentGroup.name}`;
+        if (labelUploadVersionFile) labelUploadVersionFile.textContent = 'Click to browse or drop .pdf, .docx, .txt';
+        if (errorUploadVersion) errorUploadVersion.style.display = 'none';
+
+        // Populate compare dropdown
+        if (selectCompareWithVer) {
+            selectCompareWithVer.innerHTML = '<option value="">Do not compare now</option>';
+            if (vcCurrentGroup && vcVersionsList) {
+                // Fetch current versions from cache or server
+                fetch(`/api/vc/groups/${vcCurrentGroup.id}`)
+                    .then(r => r.json())
+                    .then(d => {
+                        if (d.versions) {
+                            d.versions.forEach(v => {
+                                const opt = document.createElement('option');
+                                opt.value = v.id;
+                                opt.textContent = `Compare with V${v.version_number}: ${v.filename}`;
+                                selectCompareWithVer.appendChild(opt);
+                            });
+                            // Select latest
+                            if (d.versions.length > 0) {
+                                selectCompareWithVer.selectedIndex = d.versions.length;
+                            }
+                        }
+                    });
+            }
+        }
+
+        if (modalUploadVersion) modalUploadVersion.style.display = 'flex';
+    }
+
+    function closeUploadVersionModal() {
+        if (modalUploadVersion) modalUploadVersion.style.display = 'none';
+    }
+
+    if (btnUploadNextVersion) btnUploadNextVersion.addEventListener('click', openUploadVersionModal);
+    if (btnCloseUploadModal) btnCloseUploadModal.addEventListener('click', closeUploadVersionModal);
+    if (btnCancelUploadModal) btnCancelUploadModal.addEventListener('click', closeUploadVersionModal);
+
+    if (dropzoneUploadVersion && fileUploadVersion) {
+        dropzoneUploadVersion.addEventListener('click', () => fileUploadVersion.click());
+        fileUploadVersion.addEventListener('change', () => {
+            if (fileUploadVersion.files.length > 0) {
+                labelUploadVersionFile.textContent = fileUploadVersion.files[0].name;
+            }
+        });
+        dropzoneUploadVersion.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzoneUploadVersion.classList.add('dragover');
+        });
+        dropzoneUploadVersion.addEventListener('dragleave', () => dropzoneUploadVersion.classList.remove('dragover'));
+        dropzoneUploadVersion.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzoneUploadVersion.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                fileUploadVersion.files = e.dataTransfer.files;
+                labelUploadVersionFile.textContent = e.dataTransfer.files[0].name;
+            }
+        });
+    }
+
+    if (formUploadVersion) {
+        formUploadVersion.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (errorUploadVersion) errorUploadVersion.style.display = 'none';
+            const file = fileUploadVersion.files[0];
+            if (!file) {
+                if (errorUploadVersion) {
+                    errorUploadVersion.textContent = 'Please choose a document file to upload.';
+                    errorUploadVersion.style.display = 'block';
+                }
+                return;
+            }
+
+            const submitBtn = document.getElementById('btnSubmitUploadVersion');
+            try {
+                if (submitBtn) submitBtn.disabled = true;
+                const fd = new FormData();
+                fd.append('file', file);
+                if (selectCompareWithVer && selectCompareWithVer.value) {
+                    fd.append('compare_with_version_id', selectCompareWithVer.value);
+                }
+
+                const resp = await fetch(`/api/vc/groups/${vcCurrentGroup.id}/versions`, {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    closeUploadVersionModal();
+                    if (data.comparison) {
+                        renderComparisonResult(data.comparison);
+                    } else {
+                        openGroupDetail(vcCurrentGroup.id);
+                    }
+                } else {
+                    if (errorUploadVersion) {
+                        errorUploadVersion.textContent = data.error || 'Upload failed.';
+                        errorUploadVersion.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                if (errorUploadVersion) {
+                    errorUploadVersion.textContent = 'Error: ' + err.message;
+                    errorUploadVersion.style.display = 'block';
+                }
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        });
+    }
+
+    // Run Arbitrary Compare
+    if (btnRunArbitraryCompare) {
+        btnRunArbitraryCompare.addEventListener('click', async () => {
+            const v1 = vcSelectV1.value;
+            const v2 = vcSelectV2.value;
+            if (!v1 || !v2) {
+                alert('Please select two versions to compare.');
+                return;
+            }
+            if (v1 === v2) {
+                alert('Please select two different versions to compare.');
+                return;
+            }
+
+            try {
+                btnRunArbitraryCompare.disabled = true;
+                const resp = await fetch('/api/vc/compare', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ v1_id: parseInt(v1, 10), v2_id: parseInt(v2, 10) })
+                });
+
+                let data = null;
+                const ct = resp.headers.get('content-type') || '';
+                if (ct.includes('application/json')) {
+                    data = await resp.json();
+                }
+
+                if (resp.ok && data && data.comparison) {
+                    renderComparisonResult(data.comparison);
+                } else {
+                    alert((data && data.error) || `Comparison failed (HTTP ${resp.status}).`);
+                }
+            } catch (err) {
+                alert('Error running comparison: ' + err.message);
+            } finally {
+                btnRunArbitraryCompare.disabled = false;
+            }
+        });
+    }
+
+    // Load Comparison by ID
+    async function loadComparisonById(comparisonId) {
+        try {
+            const resp = await fetch(`/api/vc/comparisons/${comparisonId}`);
+            let data = null;
+            const ct = resp.headers.get('content-type') || '';
+            if (ct.includes('application/json')) {
+                data = await resp.json();
+            }
+
+            if (resp.ok && data && data.comparison) {
+                renderComparisonResult(data.comparison);
+            } else {
+                alert((data && data.error) || `Failed to load comparison (HTTP ${resp.status}).`);
+            }
+        } catch (err) {
+            alert('Error loading comparison: ' + err.message);
+        }
+    }
+
+    // Render Comparison Result View
+    function renderComparisonResult(compData) {
+        vcCurrentComparison = compData;
+        if (vcGroupDetailContainer) vcGroupDetailContainer.style.display = 'none';
+        if (vcGroupsContainer) vcGroupsContainer.style.display = 'none';
+        if (vcComparisonContainer) vcComparisonContainer.style.display = 'block';
+
+        const prevV = compData.prev_version || compData.v1_info || {};
+        const newV = compData.new_version || compData.v2_info || {};
+
+        if (vcCompDocTitle) {
+            vcCompDocTitle.textContent = (vcCurrentGroup ? vcCurrentGroup.name : (compData.group_name || 'Document Evolution Audit'));
+        }
+        if (vcCompVersionsSubtitle) {
+            vcCompVersionsSubtitle.textContent = `Baseline V${prevV.version_number || 1} (${prevV.filename || 'Version 1'}) ↔ Revision V${newV.version_number || 2} (${newV.filename || 'Version 2'}) • Evaluated ${compData.created_at || 'Just now'}`;
+        }
+
+        // Dual KPIs
+        const simVal = (compData.version_similarity || 0).toFixed(1);
+        const matchVal = (compData.matching_percentage || 0).toFixed(1);
+        if (vcKpiSimVal) vcKpiSimVal.textContent = simVal + '%';
+        if (vcKpiSimBar) vcKpiSimBar.style.width = Math.min(100, Math.max(0, simVal)) + '%';
+        if (vcKpiMatchVal) vcKpiMatchVal.textContent = matchVal + '%';
+        if (vcKpiMatchBar) vcKpiMatchBar.style.width = Math.min(100, Math.max(0, matchVal)) + '%';
+
+        // Quad Stats
+        const st = compData.statistics || {};
+        if (vcStatUnchanged) vcStatUnchanged.textContent = st.unchanged || 0;
+        if (vcStatUnchangedPct) vcStatUnchangedPct.textContent = `${(st.unchanged_pct || 0).toFixed(1)}% of revision`;
+        if (vcStatModified) vcStatModified.textContent = st.modified || 0;
+        if (vcStatModifiedPct) vcStatModifiedPct.textContent = `${(st.modified_pct || 0).toFixed(1)}% of revision`;
+        if (vcStatAdded) vcStatAdded.textContent = st.added || 0;
+        if (vcStatAddedPct) vcStatAddedPct.textContent = `${(st.added_pct || 0).toFixed(1)}% of revision`;
+        if (vcStatRemoved) vcStatRemoved.textContent = st.removed || 0;
+        if (vcStatRemovedPct) vcStatRemovedPct.textContent = `${(st.removed_pct || 0).toFixed(1)}% of baseline`;
+
+        vcComparisonContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Download PDF Report from CTA card
+    if (btnDownloadVcReportCta) {
+        btnDownloadVcReportCta.addEventListener('click', () => {
+            if (vcCurrentComparison && vcCurrentComparison.id) {
+                window.open(`/api/vc/comparisons/${vcCurrentComparison.id}/report`, '_blank');
+            }
+        });
+    }
+
+    // Back Buttons
+    if (btnBackToGroups) {
+        btnBackToGroups.addEventListener('click', () => {
+            if (vcGroupDetailContainer) vcGroupDetailContainer.style.display = 'none';
+            if (vcComparisonContainer) vcComparisonContainer.style.display = 'none';
+            if (vcGroupsContainer) vcGroupsContainer.style.display = 'block';
+            loadVcGroups();
+        });
+    }
+
+    if (btnBackToGroupDetail) {
+        btnBackToGroupDetail.addEventListener('click', () => {
+            if (vcComparisonContainer) vcComparisonContainer.style.display = 'none';
+            if (vcCurrentGroup) {
+                openGroupDetail(vcCurrentGroup.id);
+            } else {
+                if (vcGroupsContainer) vcGroupsContainer.style.display = 'block';
+                loadVcGroups();
+            }
+        });
+    }
+
+    // Download PDF Report
+    if (btnDownloadVcReport) {
+        btnDownloadVcReport.addEventListener('click', () => {
+            if (vcCurrentComparison && vcCurrentComparison.id) {
+                window.open(`/api/vc/comparisons/${vcCurrentComparison.id}/report`, '_blank');
+            }
+        });
+    }
+
     // Initialize
     updateWordAndCharCount();
     updateStatusHint();
     loadHistory();
+    checkVcAuthStatus();
 });
+
