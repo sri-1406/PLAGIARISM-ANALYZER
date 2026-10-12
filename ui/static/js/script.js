@@ -253,14 +253,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function resetSingleWorkspace() {
+        if (textInput) textInput.value = '';
+        const extractionBadge = document.getElementById('extractionBadge');
+        if (extractionBadge) extractionBadge.style.display = 'none';
+        const extractionFileName = document.getElementById('extractionFileName');
+        if (extractionFileName) extractionFileName.textContent = '';
+        clearAllFiles();
+        updateWordAndCharCount();
+        if (singleResults) singleResults.style.display = 'none';
+        if (resultsDiv && currentMode === 'single') resultsDiv.style.display = 'none';
+        if (loader) loader.style.display = 'none';
+        if (errorDiv) errorDiv.style.display = 'none';
+        updateStatusHint();
+    }
+
+    function resetMultiWorkspace() {
+        clearAllFiles();
+        if (multiResults) multiResults.style.display = 'none';
+        if (resultsDiv && currentMode === 'multi') resultsDiv.style.display = 'none';
+        const matrixContainer = document.getElementById('matrixContainer');
+        if (matrixContainer) matrixContainer.innerHTML = '';
+        const pairwiseList = document.getElementById('pairwiseList');
+        if (pairwiseList) pairwiseList.innerHTML = '';
+        const multiAiSection = document.getElementById('multiAiSection');
+        if (multiAiSection) multiAiSection.style.display = 'none';
+        if (loader) loader.style.display = 'none';
+        if (errorDiv) errorDiv.style.display = 'none';
+        updateStatusHint();
+    }
+
     if (clearTextBtn) {
         clearTextBtn.addEventListener('click', () => {
-            textInput.value = '';
-            const extractionBadge = document.getElementById('extractionBadge');
-            if (extractionBadge) extractionBadge.style.display = 'none';
-            clearAllFiles();
-            updateWordAndCharCount();
-            textInput.focus();
+            resetSingleWorkspace();
+            if (textInput) textInput.focus();
         });
     }
 
@@ -437,6 +463,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (errorDiv) errorDiv.style.display = 'none';
 
         if (mode === 'home') {
+            resetSingleWorkspace();
+            resetMultiWorkspace();
+
             const vcGrpDetail = document.getElementById('vcGroupDetailContainer');
             const vcCompContainer = document.getElementById('vcComparisonContainer');
             const vcGrpsContainer = document.getElementById('vcGroupsContainer');
@@ -496,11 +525,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (versionControlSection) versionControlSection.style.display = 'none';
             if (singleInputSection) singleInputSection.style.display = mode === 'single' ? 'block' : 'none';
             if (multiInputSection) multiInputSection.style.display = mode === 'multi' ? 'block' : 'none';
-            if (resultsDiv) resultsDiv.style.display = 'none';
-            if (singleResults) singleResults.style.display = 'none';
-            if (multiResults) multiResults.style.display = 'none';
-            clearAllFiles();
-            updateStatusHint();
+
+            if (mode === 'single') {
+                resetSingleWorkspace();
+            } else if (mode === 'multi') {
+                resetMultiWorkspace();
+            }
         }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
