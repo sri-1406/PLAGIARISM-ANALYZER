@@ -20,20 +20,25 @@ app.register_blueprint(ai_detection_bp, url_prefix='/api/ai')
 DATABASE_PATH = 'database.db'
 
 def init_db():
-    if not os.path.exists(DATABASE_PATH):
-        conn = sqlite3.connect(DATABASE_PATH)
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS reports (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                text TEXT,
-                percentage REAL,
-                results TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        conn.commit()
-        conn.close()
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            text TEXT,
+            percentage REAL,
+            results TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            filename TEXT
+        )
+    ''')
+    # Check if filename column exists in existing DBs
+    cursor.execute("PRAGMA table_info(reports)")
+    cols = [col[1] for col in cursor.fetchall()]
+    if 'filename' not in cols:
+        cursor.execute("ALTER TABLE reports ADD COLUMN filename TEXT DEFAULT NULL")
+    conn.commit()
+    conn.close()
     init_vc_db()
 
 @app.route('/')
