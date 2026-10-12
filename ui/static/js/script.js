@@ -19,7 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const singleDropZone = document.getElementById('singleDropZone');
     const multiDropZone = document.getElementById('multiDropZone');
 
-    // Mode Toggle
+    // Mode Toggle & Navigation Elements
+    const homeModeBtn = document.getElementById('homeMode');
+    const brandHomeBtn = document.getElementById('brandHomeBtn');
+    const homeSection = document.getElementById('homeSection');
+    const heroSection = document.getElementById('heroSection');
     const singleModeBtn = document.getElementById('singleMode');
     const multiModeBtn = document.getElementById('multiMode');
     const versionModeBtn = document.getElementById('versionMode');
@@ -62,6 +66,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const multiStatPeak = document.getElementById('multiStatPeak');
     const multiStatPeakPair = document.getElementById('multiStatPeakPair');
     const multiStatAvg = document.getElementById('multiStatAvg');
+    const statCardMultiAi = document.getElementById('statCardMultiAi');
+    const multiStatAiProb = document.getElementById('multiStatAiProb');
+    const multiBarAiProb = document.getElementById('multiBarAiProb');
+    const multiStatAiSub = document.getElementById('multiStatAiSub');
+    const multiAiSection = document.getElementById('multiAiSection');
+    const multiAiFlaggedBadge = document.getElementById('multiAiFlaggedBadge');
+    const multiHumanBadge = document.getElementById('multiHumanBadge');
+    const multiAiTableBody = document.getElementById('multiAiTableBody');
+
+    if (statCardMultiAi && multiAiSection) {
+        statCardMultiAi.addEventListener('click', () => {
+            multiAiSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
 
     function escapeHtml(str) {
         if (!str) return '';
@@ -92,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let loaderInterval = null;
 
     // Theme Management
-    const savedTheme = localStorage.getItem('theme') || 'light';
+    const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
     if (themeToggle) {
@@ -358,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('file', file);
 
         try {
-            const resp = await fetch('/api/upload', {
+            const resp = await fetch('/api/extract-text', {
                 method: 'POST',
                 body: formData
             });
@@ -378,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (statusHintText) {
-                    statusHintText.textContent = `Extracted text from "${file.name}". Ready to analyze.`;
+                    statusHintText.textContent = `Extracted text from "${file.name}" (${data.word_count || 0} words). Ready to analyze.`;
                 }
             }
         } catch (e) {
@@ -394,8 +412,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Mode Toggle Logic
+    // Mode Toggle Logic
     function activateMode(mode) {
         currentMode = mode;
+        if (homeModeBtn) {
+            homeModeBtn.classList.toggle('active', mode === 'home');
+            homeModeBtn.setAttribute('aria-selected', mode === 'home' ? 'true' : 'false');
+        }
         if (singleModeBtn) {
             singleModeBtn.classList.toggle('active', mode === 'single');
             singleModeBtn.setAttribute('aria-selected', mode === 'single' ? 'true' : 'false');
@@ -408,6 +431,46 @@ document.addEventListener('DOMContentLoaded', () => {
             versionModeBtn.classList.toggle('active', mode === 'version');
             versionModeBtn.setAttribute('aria-selected', mode === 'version' ? 'true' : 'false');
         }
+
+        const workspaceModePillText = document.getElementById('workspaceModePillText');
+
+        if (errorDiv) errorDiv.style.display = 'none';
+
+        if (mode === 'home') {
+            if (homeSection) homeSection.style.display = 'flex';
+            if (heroSection) heroSection.style.display = 'none';
+            if (workspaceCard) workspaceCard.style.display = 'none';
+            if (versionControlSection) versionControlSection.style.display = 'none';
+            if (resultsDiv) resultsDiv.style.display = 'none';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        if (homeSection) homeSection.style.display = 'none';
+        if (heroSection) heroSection.style.display = 'block';
+
+        // Dynamically update mode hero banner headings
+        const heroHeadline = document.getElementById('heroHeadline');
+        const heroSubline = document.getElementById('heroSubline');
+
+        const modeHeadings = {
+            single: {
+                title: 'Single Document Plagiarism Analysis',
+                sub: 'Upload or paste your text to analyze plagiarism and originality with instant similarity scoring, sentence matching, and downloadable audit reports.'
+            },
+            multi: {
+                title: 'Multi-Document Plagiarism Analysis',
+                sub: 'Compare multiple documents simultaneously to identify similarity matrices, cross-file sentence alignments, and cluster overlaps.'
+            },
+            version: {
+                title: 'Version Control & Document Evolution Analysis',
+                sub: 'Track document revisions over time, preserve permanent version snapshots, and compare historical evolutions.'
+            }
+        };
+
+        const currentHeading = modeHeadings[mode] || modeHeadings.single;
+        if (heroHeadline) heroHeadline.textContent = currentHeading.title;
+        if (heroSubline) heroSubline.textContent = currentHeading.sub;
 
         if (mode === 'version') {
             if (workspaceCard) workspaceCard.style.display = 'none';
@@ -425,57 +488,439 @@ document.addEventListener('DOMContentLoaded', () => {
             clearAllFiles();
             updateStatusHint();
         }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    if (singleModeBtn) singleModeBtn.addEventListener('click', () => activateMode('single'));
-    if (multiModeBtn) multiModeBtn.addEventListener('click', () => activateMode('multi'));
-    if (versionModeBtn) {
-        versionModeBtn.addEventListener('click', () => activateMode('version'));
+    // Workspace Back to Home Button
+    const workspaceBackHomeBtn = document.getElementById('workspaceBackHomeBtn');
+    if (workspaceBackHomeBtn) {
+        workspaceBackHomeBtn.addEventListener('click', () => activateMode('home'));
     }
+
+    const navBackHomeBtn = document.getElementById('navBackHomeBtn');
+    if (navBackHomeBtn) {
+        navBackHomeBtn.addEventListener('click', () => activateMode('home'));
+    }
+
+    if (brandHomeBtn) {
+        brandHomeBtn.addEventListener('click', () => activateMode('home'));
+        brandHomeBtn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                activateMode('home');
+            }
+        });
+    }
+
+    // Three Primary Feature Cards & Action Buttons
+    const btnHomeSingle = document.getElementById('btnHomeSingle');
+    const btnHomeMulti = document.getElementById('btnHomeMulti');
+    const btnHomeVersion = document.getElementById('btnHomeVersion');
+    const cardHomeSingle = document.getElementById('cardHomeSingle');
+    const cardHomeMulti = document.getElementById('cardHomeMulti');
+    const cardHomeVersion = document.getElementById('cardHomeVersion');
+
+    if (btnHomeSingle) {
+        btnHomeSingle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            activateMode('single');
+        });
+    }
+    if (btnHomeMulti) {
+        btnHomeMulti.addEventListener('click', (e) => {
+            e.stopPropagation();
+            activateMode('multi');
+        });
+    }
+    if (btnHomeVersion) {
+        btnHomeVersion.addEventListener('click', (e) => {
+            e.stopPropagation();
+            activateMode('version');
+        });
+    }
+
+    if (cardHomeSingle) cardHomeSingle.addEventListener('click', () => activateMode('single'));
+    if (cardHomeMulti) cardHomeMulti.addEventListener('click', () => activateMode('multi'));
+    if (cardHomeVersion) cardHomeVersion.addEventListener('click', () => activateMode('version'));
+
+    // Hero Section Buttons
+    const heroGetStartedBtn = document.getElementById('heroGetStartedBtn');
+    const heroLearnMoreBtn = document.getElementById('heroLearnMoreBtn');
+    const btnPreviewLaunch = document.getElementById('btnPreviewLaunch');
+
+    if (heroGetStartedBtn) heroGetStartedBtn.addEventListener('click', () => activateMode('single'));
+    if (heroLearnMoreBtn) {
+        heroLearnMoreBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetEl = document.getElementById('homeFeatures');
+            if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+    if (btnPreviewLaunch) btnPreviewLaunch.addEventListener('click', () => activateMode('single'));
+
+    // Call To Action Section Buttons
+    const ctaGetStartedBtn = document.getElementById('ctaGetStartedBtn');
+    const ctaMultiBtn = document.getElementById('ctaMultiBtn');
+
+    if (ctaGetStartedBtn) ctaGetStartedBtn.addEventListener('click', () => activateMode('single'));
+    if (ctaMultiBtn) ctaMultiBtn.addEventListener('click', () => activateMode('multi'));
+
+    // Footer Quick Links
+    const footerSingleLink = document.getElementById('footerSingleLink');
+    const footerMultiLink = document.getElementById('footerMultiLink');
+    const footerVersionLink = document.getElementById('footerVersionLink');
+
+    if (footerSingleLink) footerSingleLink.addEventListener('click', () => activateMode('single'));
+    if (footerMultiLink) footerMultiLink.addEventListener('click', () => activateMode('multi'));
+    if (footerVersionLink) footerVersionLink.addEventListener('click', () => activateMode('version'));
+
+    // Auth Modal Handlers
+    const authModal = document.getElementById('authModal');
+    const btnNavLogin = document.getElementById('btnNavLogin');
+    const btnNavSignUp = document.getElementById('btnNavSignUp');
+    const mobBtnLogin = document.getElementById('mobBtnLogin');
+    const mobBtnSignUp = document.getElementById('mobBtnSignUp');
+    const btnCloseAuthModal = document.getElementById('btnCloseAuthModal');
+    const tabAuthLogin = document.getElementById('tabAuthLogin');
+    const tabAuthSignup = document.getElementById('tabAuthSignup');
+    const fieldAuthName = document.getElementById('fieldAuthName');
+    const authModalHeading = document.getElementById('authModalHeading');
+    const authModalSub = document.getElementById('authModalSub');
+    const btnSubmitAuthText = document.getElementById('btnSubmitAuthText');
+    const authOptionsRow = document.getElementById('authOptionsRow');
+    const btnGuestAccess = document.getElementById('btnGuestAccess');
+    const formAuth = document.getElementById('formAuth');
+    const authNotice = document.getElementById('authNotice');
+
+    function openAuthModal(isSignUp = false) {
+        if (!authModal) return;
+        authModal.style.display = 'flex';
+        if (authNotice) authNotice.style.display = 'none';
+        setAuthTab(isSignUp);
+        if (mobileNavDrawer) mobileNavDrawer.style.display = 'none';
+    }
+
+    function closeAuthModal() {
+        if (authModal) authModal.style.display = 'none';
+    }
+
+    function setAuthTab(isSignUp) {
+        if (!tabAuthSignup || !tabAuthLogin) return;
+        if (isSignUp) {
+            tabAuthSignup.classList.add('active');
+            tabAuthLogin.classList.remove('active');
+            if (fieldAuthName) fieldAuthName.style.display = 'flex';
+            if (authModalHeading) authModalHeading.textContent = 'Create Free Account';
+            if (authModalSub) authModalSub.textContent = 'Join thousands of researchers and institutions.';
+            if (btnSubmitAuthText) btnSubmitAuthText.textContent = 'Create Account';
+            if (authOptionsRow) authOptionsRow.style.display = 'none';
+        } else {
+            tabAuthLogin.classList.add('active');
+            tabAuthSignup.classList.remove('active');
+            if (fieldAuthName) fieldAuthName.style.display = 'none';
+            if (authModalHeading) authModalHeading.textContent = 'Welcome Back';
+            if (authModalSub) authModalSub.textContent = 'Access your document analysis history and saved reports.';
+            if (btnSubmitAuthText) btnSubmitAuthText.textContent = 'Sign In';
+            if (authOptionsRow) authOptionsRow.style.display = 'flex';
+        }
+    }
+
+    if (btnNavLogin) btnNavLogin.addEventListener('click', () => openAuthModal(false));
+    if (btnNavSignUp) btnNavSignUp.addEventListener('click', () => openAuthModal(true));
+    if (mobBtnLogin) mobBtnLogin.addEventListener('click', () => openAuthModal(false));
+    if (mobBtnSignUp) mobBtnSignUp.addEventListener('click', () => openAuthModal(true));
+    if (btnCloseAuthModal) btnCloseAuthModal.addEventListener('click', closeAuthModal);
+    if (tabAuthLogin) tabAuthLogin.addEventListener('click', () => setAuthTab(false));
+    if (tabAuthSignup) tabAuthSignup.addEventListener('click', () => setAuthTab(true));
+
+    if (authModal) {
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) closeAuthModal();
+        });
+    }
+
+    if (btnGuestAccess) {
+        btnGuestAccess.addEventListener('click', () => {
+            if (authNotice) {
+                authNotice.className = 'auth-notice';
+                authNotice.style.display = 'block';
+                authNotice.textContent = 'Signed in as Guest Researcher. Enjoy full analysis!';
+                setTimeout(() => {
+                    closeAuthModal();
+                    activateMode('single');
+                }, 900);
+            }
+        });
+    }
+
+    if (formAuth) {
+        formAuth.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const emailInput = document.getElementById('authEmail');
+            const email = emailInput ? emailInput.value : 'User';
+            if (authNotice) {
+                authNotice.className = 'auth-notice';
+                authNotice.style.display = 'block';
+                authNotice.textContent = `Welcome back! Signed in as ${email}`;
+                setTimeout(() => {
+                    closeAuthModal();
+                }, 1000);
+            }
+        });
+    }
+
+    // Contact Form Submission
+    const homeContactForm = document.getElementById('homeContactForm');
+    const contactFormStatus = document.getElementById('contactFormStatus');
+    if (homeContactForm) {
+        homeContactForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('contactName');
+            const name = nameInput ? nameInput.value : 'User';
+            if (contactFormStatus) {
+                contactFormStatus.className = 'contact-form-status success';
+                contactFormStatus.style.display = 'flex';
+                contactFormStatus.innerHTML = `✓ Thank you, ${name}! Your inquiry has been sent to our academic support team.`;
+                homeContactForm.reset();
+                setTimeout(() => {
+                    contactFormStatus.style.display = 'none';
+                }, 6000);
+            }
+        });
+    }
+
 
     // Analyze Click Action
     if (analyzeBtn) {
         analyzeBtn.addEventListener('click', async () => {
-        errorDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
 
-        if (currentMode === 'single') {
-            // Determine text to analyze
-            let textToAnalyze = textInput.value.trim();
+            if (currentMode === 'single') {
+                // Determine text to analyze
+                let textToAnalyze = textInput.value.trim();
 
-            if (!textToAnalyze && selectedFilesStore.length > 0) {
-                // If textInput is empty but a file is staged, extract it now
+                if (!textToAnalyze && selectedFilesStore.length > 0) {
+                    // If textInput is empty but a file is staged, extract it now
+                    showLoader(true);
+                    const formData = new FormData();
+                    formData.append('file', selectedFilesStore[0]);
+                    try {
+                        const resp = await fetch('/api/extract-text', { method: 'POST', body: formData });
+                        const uploadData = await resp.json();
+                        if (uploadData.error) throw new Error(uploadData.error);
+                        textToAnalyze = uploadData.text;
+                        textInput.value = textToAnalyze;
+                        updateWordAndCharCount();
+                    } catch (err) {
+                        showLoader(false);
+                        showError(err.message);
+                        return;
+                    }
+                }
+
+                if (!textToAnalyze) {
+                    showError('Please upload a document (.pdf, .docx, .txt) or enter text to analyze.');
+                    return;
+                }
+
+                lastSingleText = textToAnalyze;
+                performAnalysis(textToAnalyze);
+            } else {
+                if (selectedFilesStore.length < 2) {
+                    showError('Please stage at least 2 documents for cross-comparison.');
+                    return;
+                }
+                performMultiAnalysis(selectedFilesStore);
+            }
+        });
+    }
+
+    // =========================================================================
+    // ISOLATED AI-GENERATED CONTENT DETECTION HANDLER
+    // =========================================================================
+    const checkAiBtn = document.getElementById('checkAiBtn');
+    const checkAiBtnText = document.getElementById('checkAiBtnText');
+
+    if (checkAiBtn) {
+        checkAiBtn.addEventListener('click', async () => {
+            let textToCheck = textInput.value.trim();
+
+            if (!textToCheck && selectedFilesStore.length > 0) {
                 showLoader(true);
                 const formData = new FormData();
                 formData.append('file', selectedFilesStore[0]);
                 try {
-                    const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+                    const resp = await fetch('/api/extract-text', { method: 'POST', body: formData });
                     const uploadData = await resp.json();
                     if (uploadData.error) throw new Error(uploadData.error);
-                    textToAnalyze = uploadData.text;
-                    textInput.value = textToAnalyze;
+                    textToCheck = uploadData.text;
+                    textInput.value = textToCheck;
                     updateWordAndCharCount();
                 } catch (err) {
                     showLoader(false);
                     showError(err.message);
                     return;
+                } finally {
+                    showLoader(false);
                 }
             }
 
-            if (!textToAnalyze) {
-                showError('Please upload a document (.pdf, .docx, .txt) or enter text to analyze.');
+            if (!textToCheck) {
+                showError('Please upload a document (.pdf, .docx, .txt) or enter text to scan for AI content.');
                 return;
             }
 
-            lastSingleText = textToAnalyze;
-            performAnalysis(textToAnalyze);
-        } else {
-            if (selectedFilesStore.length < 2) {
-                showError('Please stage at least 2 documents for cross-comparison.');
-                return;
-            }
-            performMultiAnalysis(selectedFilesStore);
+            // Reveal single results view container to display AI findings
+            resultsDiv.style.display = 'block';
+            if (singleResults) singleResults.style.display = 'block';
+            if (multiResults) multiResults.style.display = 'none';
+
+            runAiContentDetection(textToCheck, true);
+        });
+    }
+
+    async function runAiContentDetection(text, scrollToAi = false, precomputedData = null) {
+        const aiCard = document.getElementById('aiDetectionCard');
+        if (!aiCard) return;
+
+        aiCard.style.display = 'block';
+
+        const aiPill = document.getElementById('aiClassificationPill');
+        const aiPillText = document.getElementById('aiClassificationText');
+        const aiProbVal = document.getElementById('aiProbabilityVal');
+        const aiHumanProbVal = document.getElementById('aiHumanProbabilityVal');
+        const aiConfVal = document.getElementById('aiConfidenceVal');
+        const aiChunksVal = document.getElementById('aiChunksVal');
+        const aiBarHuman = document.getElementById('aiBarFillHuman');
+        const aiBarAi = document.getElementById('aiBarFillAi');
+        const aiBarHumanLabel = document.getElementById('aiBarHumanLabel');
+        const aiBarAiLabel = document.getElementById('aiBarAiLabel');
+        const aiDetail = document.getElementById('aiAssessmentDetail');
+        const aiDisclaimer = document.getElementById('aiDisclaimerText');
+
+        // Loading state
+        if (checkAiBtn) checkAiBtn.disabled = true;
+        if (checkAiBtnText) checkAiBtnText.textContent = 'Scanning AI...';
+        if (aiPill) {
+            aiPill.className = 'ai-pill ai-pill-inconclusive';
+            if (aiPillText) aiPillText.textContent = 'Evaluating...';
         }
-    });
+        if (aiDetail) {
+            aiDetail.textContent = 'Analyzing neural token distributions and perplexity heuristics...';
+        }
+
+        const statAiProb = document.getElementById('statAiProbability');
+        const barAiProb = document.getElementById('barAiProbability');
+        const statAiClass = document.getElementById('statAiClassification');
+        const aiIconWrap = document.getElementById('aiStatIconWrapper');
+        if (statAiProb) statAiProb.textContent = 'Scanning...';
+        if (statAiClass) statAiClass.textContent = 'Analyzing neural patterns...';
+        if (barAiProb) {
+            barAiProb.style.width = '35%';
+            barAiProb.style.background = 'linear-gradient(90deg, #7c3aed 0%, #a855f7 100%)';
+        }
+
+        if (scrollToAi) {
+            aiCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        try {
+            let data = precomputedData;
+            if (!data) {
+                const resp = await fetch('/api/ai/detect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+
+                data = await resp.json();
+
+                if (!resp.ok || !data.valid) {
+                    throw new Error(data.error || 'Failed to analyze text for AI generation.');
+                }
+            }
+
+            const aiProb = parseFloat(data.ai_probability || 0);
+            const humanProb = parseFloat(data.human_probability || 0);
+
+            if (aiProbVal) aiProbVal.textContent = `${aiProb.toFixed(1)}%`;
+            if (aiHumanProbVal) aiHumanProbVal.textContent = `${humanProb.toFixed(1)}%`;
+            if (aiConfVal) aiConfVal.textContent = data.confidence || 'Moderate';
+
+            const chunksCount = data.chunks_analyzed || 1;
+            if (aiChunksVal) aiChunksVal.textContent = `${chunksCount} Segment${chunksCount !== 1 ? 's' : ''}`;
+
+            if (aiBarHuman) aiBarHuman.style.width = `${humanProb}%`;
+            if (aiBarAi) aiBarAi.style.width = `${aiProb}%`;
+            if (aiBarHumanLabel) aiBarHumanLabel.textContent = `${humanProb.toFixed(1)}%`;
+            if (aiBarAiLabel) aiBarAiLabel.textContent = `${aiProb.toFixed(1)}%`;
+
+            // Classification Pill Styling
+            if (aiPill && aiPillText) {
+                aiPill.className = 'ai-pill';
+                aiPillText.textContent = data.classification || 'Inconclusive';
+
+                if (data.classification === 'Likely AI-generated') {
+                    aiPill.classList.add('ai-pill-ai');
+                    if (aiProbVal) aiProbVal.style.color = 'var(--danger)';
+                } else if (data.classification === 'Likely human-written') {
+                    aiPill.classList.add('ai-pill-human');
+                    if (aiProbVal) aiProbVal.style.color = 'var(--text-main)';
+                } else if (data.classification.includes('Mixed')) {
+                    aiPill.classList.add('ai-pill-mixed');
+                    if (aiProbVal) aiProbVal.style.color = 'var(--warning)';
+                } else {
+                    aiPill.classList.add('ai-pill-inconclusive');
+                    if (aiProbVal) aiProbVal.style.color = 'var(--text-muted)';
+                }
+            }
+
+            // Sync with Card 1 in Executive Overview (Idea 4)
+            if (statAiProb) statAiProb.textContent = `${aiProb.toFixed(1)}%`;
+            if (barAiProb) {
+                barAiProb.style.width = `${Math.min(100, Math.max(3, aiProb))}%`;
+                if (aiProb >= 50) {
+                    barAiProb.style.background = 'var(--danger)';
+                } else if (aiProb >= 25) {
+                    barAiProb.style.background = 'var(--warning)';
+                } else {
+                    barAiProb.style.background = 'var(--success)';
+                }
+            }
+            if (statAiClass) {
+                statAiClass.textContent = data.classification || (aiProb < 25 ? 'Likely human-written' : 'AI patterns detected');
+            }
+            if (aiIconWrap) {
+                aiIconWrap.className = 'stat-icon-wrapper';
+                if (aiProb >= 50) aiIconWrap.classList.add('icon-danger');
+                else if (aiProb >= 25) aiIconWrap.classList.add('icon-warning');
+                else aiIconWrap.classList.add('icon-ai');
+            }
+
+            if (aiDetail) {
+                aiDetail.textContent = data.assessment_detail || 'Analysis completed.';
+            }
+
+            if (aiDisclaimer && data.disclaimer) {
+                aiDisclaimer.innerHTML = `<strong>Notice:</strong> ${escapeHtml(data.disclaimer)}`;
+            }
+
+        } catch (err) {
+            console.error('AI Detection Error:', err);
+            if (aiPill) {
+                aiPill.className = 'ai-pill ai-pill-inconclusive';
+                if (aiPillText) aiPillText.textContent = 'Notice';
+            }
+            if (aiDetail) {
+                aiDetail.textContent = `AI Content Scan: ${err.message}`;
+            }
+            if (statAiProb) statAiProb.textContent = 'Inconclusive';
+            if (statAiClass) statAiClass.textContent = 'Short / unverified text';
+            if (barAiProb) barAiProb.style.width = '0%';
+        } finally {
+            if (checkAiBtn) checkAiBtn.disabled = false;
+            if (checkAiBtnText) checkAiBtnText.textContent = 'Check AI Content';
+        }
     }
 
     // Single Analysis Runner
@@ -608,27 +1053,130 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Stat Quad Population
-        if (statSimilarity) statSimilarity.textContent = `${pct.toFixed(1)}%`;
-        if (barSimilarity) barSimilarity.style.width = `${pct}%`;
+        // Stat Quad Population (Idea 1, 3, and 4)
+        // 1. Idea 4: AI Generation Likelihood (Initial state while AI runs async)
+        const statAiProb = document.getElementById('statAiProbability');
+        const barAiProb = document.getElementById('barAiProbability');
+        const statAiClass = document.getElementById('statAiClassification');
+        const aiIconWrap = document.getElementById('aiStatIconWrapper');
+        if (statAiProb) statAiProb.textContent = 'Scanning...';
+        if (barAiProb) {
+            barAiProb.style.width = '30%';
+            barAiProb.style.background = 'linear-gradient(90deg, #7c3aed 0%, #a855f7 100%)';
+        }
+        if (statAiClass) statAiClass.textContent = 'Analyzing neural patterns...';
+        if (aiIconWrap) aiIconWrap.className = 'stat-icon-wrapper icon-ai';
 
+        const statCardAi = document.getElementById('statCardAi');
+        if (statCardAi && !statCardAi.hasAttribute('data-bound')) {
+            statCardAi.setAttribute('data-bound', 'true');
+            statCardAi.addEventListener('click', () => {
+                const aiCard = document.getElementById('aiDetectionCard');
+                if (aiCard) {
+                    aiCard.style.display = 'block';
+                    aiCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+
+        // 2. Document Originality
         if (statOriginality) statOriginality.textContent = `${originality.toFixed(1)}%`;
         if (barOriginality) barOriginality.style.width = `${originality}%`;
+        const origSub = document.getElementById('statOriginalitySubtext');
+        if (origSub) {
+            origSub.textContent = pct < 40 ? 'High originality score' : (pct < 70 ? 'Moderate originality' : 'Elevated overlap detected');
+        }
 
+        // 3. Idea 1: Flagged Sentences Breakdown
         const totalSent = data.total_sentences || 0;
         const flaggedSent = Array.isArray(data.plagiarized_sentences) ? data.plagiarized_sentences.length : (data.plagiarized_sentences || 0);
+        const cleanSent = Math.max(0, totalSent - flaggedSent);
+        const flaggedPct = totalSent > 0 ? ((flaggedSent / totalSent) * 100) : 0;
 
-        if (statSentences) statSentences.textContent = `${totalSent}`;
-        if (statFlaggedSentences) statFlaggedSentences.textContent = `${flaggedSent} flagged match${flaggedSent === 1 ? '' : 'es'}`;
+        if (statSentences) statSentences.textContent = `${flaggedSent} / ${totalSent}`;
+        const barFlagged = document.getElementById('barFlaggedSentences');
+        if (barFlagged) {
+            barFlagged.style.width = `${Math.min(100, Math.max(3, flaggedPct))}%`;
+            if (flaggedPct < 25) barFlagged.style.backgroundColor = 'var(--success)';
+            else if (flaggedPct < 55) barFlagged.style.backgroundColor = 'var(--warning)';
+            else barFlagged.style.backgroundColor = 'var(--danger)';
+        }
+        if (statFlaggedSentences) {
+            statFlaggedSentences.textContent = `${cleanSent} clean sentences (${flaggedPct.toFixed(1)}% flagged)`;
+        }
+
+        // 4. Idea 3: Match Intensity & Top Source
+        const avgSim = data.average_similarity || 0;
+        let intensityLabel = 'Zero Matches';
+        let pillClass = 'pill-clean';
+        let iconClass = 'icon-success';
+
+        if (avgSim >= 75) {
+            intensityLabel = 'Direct Match';
+            pillClass = 'pill-high';
+            iconClass = 'icon-danger';
+        } else if (avgSim >= 45) {
+            intensityLabel = 'Moderate Match';
+            pillClass = 'pill-moderate';
+            iconClass = 'icon-warning';
+        } else if (avgSim > 0) {
+            intensityLabel = 'Mild Paraphrasing';
+            pillClass = 'pill-low';
+            iconClass = 'icon-primary';
+        }
+
+        const intensityPillElem = document.getElementById('statIntensityPill');
+        if (intensityPillElem) {
+            intensityPillElem.textContent = intensityLabel;
+            intensityPillElem.className = `match-pill ${pillClass}`;
+        }
+
+        const intensityIconElem = document.getElementById('matchIntensityIconWrapper');
+        if (intensityIconElem) {
+            intensityIconElem.className = `stat-icon-wrapper ${iconClass}`;
+        }
+
+        const topValElem = document.getElementById('statTopSourceVal');
+        const topBarElem = document.getElementById('barTopSource');
 
         if (data.top_matches && data.top_matches.length > 0) {
             const top = data.top_matches[0];
             const topPct = (top.score * 100).toFixed(1);
-            if (statTopSource) statTopSource.textContent = top.title || "Matched Corpus File";
-            if (statTopSourceScore) statTopSourceScore.textContent = `${topPct}% Maximum Overlap`;
+            const topScoreNum = parseFloat(topPct) || 0;
+
+            if (topValElem) {
+                topValElem.textContent = `${topPct}%`;
+            } else if (statTopSource) {
+                statTopSource.textContent = `${topPct}%`;
+            }
+
+            if (topBarElem) {
+                topBarElem.style.width = `${Math.min(100, Math.max(3, topScoreNum))}%`;
+                if (topScoreNum < 25) topBarElem.style.backgroundColor = 'var(--success)';
+                else if (topScoreNum < 55) topBarElem.style.backgroundColor = 'var(--warning)';
+                else topBarElem.style.backgroundColor = 'var(--danger)';
+            }
+
+            if (statTopSourceScore) {
+                statTopSourceScore.textContent = `Top Match: ${top.title || 'Matched Document'}`;
+                statTopSourceScore.title = `Top match: ${top.title || ''} (${topPct}% overlap)`;
+            }
         } else {
-            if (statTopSource) statTopSource.textContent = "No Matches Found";
-            if (statTopSourceScore) statTopSourceScore.textContent = "100% Unique Corpus";
+            if (topValElem) {
+                topValElem.textContent = '0.0%';
+            } else if (statTopSource) {
+                statTopSource.textContent = '0.0%';
+            }
+
+            if (topBarElem) {
+                topBarElem.style.width = '0%';
+                topBarElem.style.backgroundColor = 'var(--success)';
+            }
+
+            if (statTopSourceScore) {
+                statTopSourceScore.textContent = '100% Unique Document';
+                statTopSourceScore.title = 'No significant text matches detected across corpus';
+            }
         }
 
         // Smooth Scroll to Results
@@ -636,6 +1184,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Refresh History
         loadHistory();
+
+        // Asynchronously check AI content without blocking plagiarism results
+        if (typeof runAiContentDetection === 'function') {
+            const preAi = data.ai_analysis || (data.results && data.results.ai_analysis);
+            runAiContentDetection(originalText, false, preAi);
+        }
     }
 
     // Display Multi-Compare Results
@@ -682,6 +1236,65 @@ document.addEventListener('DOMContentLoaded', () => {
         if (multiStatAvg) {
             multiStatAvg.textContent = `${avgScore.toFixed(1)}%`;
             multiStatAvg.style.color = avgScore >= 70 ? 'var(--danger)' : (avgScore >= 40 ? 'var(--warning)' : 'var(--success)');
+        }
+
+        // Multi-Document AI Content & Authorship Audit
+        const aiAnalysis = data.ai_analysis;
+        if (aiAnalysis) {
+            const avgAi = typeof aiAnalysis.average_ai_probability === 'number' ? aiAnalysis.average_ai_probability : 0;
+            if (multiStatAiProb) {
+                multiStatAiProb.textContent = `${avgAi.toFixed(1)}%`;
+                multiStatAiProb.style.color = avgAi >= 70 ? 'var(--danger)' : (avgAi >= 40 ? 'var(--warning)' : 'var(--success)');
+            }
+            if (multiBarAiProb) {
+                multiBarAiProb.style.width = `${Math.min(100, Math.max(0, avgAi))}%`;
+            }
+            if (multiStatAiSub) {
+                const flagged = aiAnalysis.ai_flagged_count || 0;
+                const human = aiAnalysis.human_count || 0;
+                multiStatAiSub.textContent = `${flagged} Flagged AI • ${human} Human`;
+            }
+            if (multiAiFlaggedBadge) {
+                multiAiFlaggedBadge.textContent = `${aiAnalysis.ai_flagged_count || 0} AI Flagged`;
+            }
+            if (multiHumanBadge) {
+                multiHumanBadge.textContent = `${aiAnalysis.human_count || 0} Human Written`;
+            }
+
+            if (multiAiTableBody && Array.isArray(aiAnalysis.documents)) {
+                multiAiTableBody.innerHTML = '';
+                aiAnalysis.documents.forEach(doc => {
+                    const row = document.createElement('tr');
+                    const isAi = doc.classification === 'Likely AI-generated';
+                    const isHuman = doc.classification === 'Likely human-written';
+                    const pillClass = isAi ? 'ai-pill-ai' : (isHuman ? 'ai-pill-human' : 'ai-pill-inconclusive');
+                    const pillIcon = isAi ? '🤖' : (isHuman ? '✍️' : '⚖️');
+                    const scoreColor = isAi ? 'var(--danger)' : (isHuman ? 'var(--success)' : 'var(--warning)');
+                    
+                    row.innerHTML = `
+                        <td class="ai-doc-name-cell">
+                            <span class="ai-file-icon">📄</span>
+                            <span class="ai-file-name" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</span>
+                        </td>
+                        <td>${doc.word_count ? doc.word_count.toLocaleString() : '0'}</td>
+                        <td>
+                            <div class="ai-score-cell">
+                                <span class="ai-score-num" style="color: ${scoreColor}">${(doc.ai_probability || 0).toFixed(1)}%</span>
+                                <div class="ai-score-track">
+                                    <div class="ai-score-fill" style="width: ${Math.min(100, Math.max(0, doc.ai_probability || 0))}%; background: ${scoreColor}"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="ai-pill ${pillClass}">${pillIcon} ${escapeHtml(doc.classification || 'Inconclusive')}</span>
+                        </td>
+                        <td>
+                            <span class="ai-conf-badge">${escapeHtml(doc.confidence || 'Moderate')}</span>
+                        </td>
+                    `;
+                    multiAiTableBody.appendChild(row);
+                });
+            }
         }
 
         // 2. Render Matrix Table
@@ -741,11 +1354,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="pair-matches-drawer" id="${drawerId}" style="display: none;">
                             <div class="match-snippet-label">Aligned Sentence Matches (${pair.matches.length}):</div>
                             ${pair.matches.map((m, mIdx) => {
-                                const mScore = m.similarity_percentage || m.score || 0;
-                                const mCrit = mScore >= 70;
-                                const mBadgeBg = mCrit ? 'var(--danger-light)' : 'var(--warning-light)';
-                                const mBadgeColor = mCrit ? 'var(--danger)' : 'var(--warning)';
-                                return `
+                        const mScore = m.similarity_percentage || m.score || 0;
+                        const mCrit = mScore >= 70;
+                        const mBadgeBg = mCrit ? 'var(--danger-light)' : 'var(--warning-light)';
+                        const mBadgeColor = mCrit ? 'var(--danger)' : 'var(--warning)';
+                        return `
                                     <div class="match-snippet-box">
                                         <div class="match-snippet-header">
                                             <span style="color:var(--text-muted);">Match #${mIdx + 1}</span>
@@ -763,7 +1376,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         </div>
                                     </div>
                                 `;
-                            }).join('')}
+                    }).join('')}
                         </div>
                     `;
                 }
@@ -970,9 +1583,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2. Search Query Filter
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
+                const fileNameMatch = (report.filename || '').toLowerCase().includes(q);
                 const previewMatch = (report.preview || '').toLowerCase().includes(q);
                 const idMatch = String(report.id).includes(q);
-                if (!previewMatch && !idMatch) return false;
+                if (!previewMatch && !idMatch && !fileNameMatch) return false;
             }
 
             return true;
@@ -1050,14 +1664,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = `history-card ${cardClass}`;
 
+            const docDisplayName = report.filename || `Audit #${report.id}`;
+
             card.innerHTML = `
                 <div class="history-card-top">
                     <div class="history-doc-info">
                         <div class="history-doc-badge">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                         </div>
-                        <div>
-                            <span class="history-doc-title">Audit #${report.id}</span>
+                        <div style="min-width: 0; overflow: hidden;">
+                            <span class="history-doc-title" title="${escapeHtml(docDisplayName)}">${escapeHtml(docDisplayName)}</span>
                             <span class="history-doc-date">${relativeTime}</span>
                         </div>
                     </div>
@@ -1142,16 +1758,17 @@ document.addEventListener('DOMContentLoaded', () => {
         textInput.value = report.full_text || report.preview;
         updateWordAndCharCount();
 
-        // Show extraction badge with Audit #
+        // Show extraction badge with filename
+        const docDisplayName = report.filename || `Audit #${report.id}`;
         const extractionBadge = document.getElementById('extractionBadge');
         const extractionFileName = document.getElementById('extractionFileName');
         if (extractionBadge && extractionFileName) {
             extractionBadge.style.display = 'inline-flex';
-            extractionFileName.textContent = `Loaded from Audit #${report.id}`;
+            extractionFileName.textContent = `Loaded from ${docDisplayName}`;
         }
 
         if (statusHintText) {
-            statusHintText.textContent = `Loaded content from Audit #${report.id} (${(report.percentage || 0).toFixed(1)}% score). Ready to re-analyze.`;
+            statusHintText.textContent = `Loaded content from ${docDisplayName} (${(report.percentage || 0).toFixed(1)}% score). Ready to re-analyze.`;
         }
 
         // Smooth scroll up to the workspace editor
@@ -1282,6 +1899,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const vcKpiSimBar = document.getElementById('vcKpiSimBar');
     const vcKpiMatchVal = document.getElementById('vcKpiMatchVal');
     const vcKpiMatchBar = document.getElementById('vcKpiMatchBar');
+
+    // Modal Version AI Elements
+    const modalVersionAi = document.getElementById('modalVersionAi');
+    const btnCloseVersionAiModal = document.getElementById('btnCloseVersionAiModal');
+    const btnCloseVersionAiModalBtn = document.getElementById('btnCloseVersionAiModalBtn');
+    const verAiModalTitle = document.getElementById('verAiModalTitle');
+    const verAiModalSubtitle = document.getElementById('verAiModalSubtitle');
+    const verAiVal = document.getElementById('verAiVal');
+    const verHumanVal = document.getElementById('verHumanVal');
+    const verAiBarFill = document.getElementById('verAiBarFill');
+    const verAiHumanLegend = document.getElementById('verAiHumanLegend');
+    const verAiAiLegend = document.getElementById('verAiAiLegend');
+    const verAiClassPill = document.getElementById('verAiClassPill');
+    const verAiConfPill = document.getElementById('verAiConfPill');
+    const verAiWordsPill = document.getElementById('verAiWordsPill');
+    const verAiAssessmentText = document.getElementById('verAiAssessmentText');
+    const btnDownloadVersionAiReport = document.getElementById('btnDownloadVersionAiReport');
 
     const vcStatUnchanged = document.getElementById('vcStatUnchanged');
     const vcStatUnchangedPct = document.getElementById('vcStatUnchangedPct');
@@ -1722,17 +2356,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const sentencesStr = v.sentence_count ? `${v.sentence_count} sentences` : '';
             const metaParts = [sizeStr, wordsStr, sentencesStr, v.created_at].filter(Boolean).join(' • ');
 
+            let aiBadgeHtml = '';
+            if (v.ai_probability !== null && v.ai_probability !== undefined) {
+                const aiProb = typeof v.ai_probability === 'number' ? v.ai_probability : parseFloat(v.ai_probability || 0);
+                const isAi = aiProb >= 50;
+                const aiClass = isAi ? 'ai-pill-ai' : 'ai-pill-human';
+                const aiIcon = isAi ? '🤖' : '✍️';
+                const label = v.ai_classification || (isAi ? 'Likely AI' : 'Likely Human');
+                aiBadgeHtml = `<span class="vc-version-ai-pill ${aiClass}" title="RoBERTa AI Probability: ${aiProb.toFixed(1)}%">${aiIcon} ${aiProb.toFixed(1)}% AI • ${escapeHtml(label)}</span>`;
+            }
+
             html += `
                 <div class="vc-version-card">
                     <div class="vc-version-left">
                         <div class="vc-version-badge">V${v.version_number}</div>
                         <div>
-                            <div class="vc-version-num">Version ${v.version_number}</div>
+                            <div class="vc-version-num">Version ${v.version_number} ${aiBadgeHtml}</div>
                             <div class="vc-version-filename">${escapeHtml(v.filename)}</div>
                             <div class="vc-version-meta">${metaParts}</div>
                         </div>
                     </div>
                     <div class="vc-version-actions">
+                        <button type="button" class="btn-version-ai btn-show-version-ai" data-id="${v.id}" title="View AI Content Analysis for Version ${v.version_number}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8.01" y2="16"/><line x1="16" y1="16" x2="16.01" y2="16"/></svg>
+                            <span>AI Analysis</span>
+                        </button>
                         <a href="/api/vc/versions/${v.id}/download" class="btn-version-dl" title="Download original file">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             <span>Download</span>
@@ -1747,6 +2395,17 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         });
         vcVersionsList.innerHTML = html;
+
+        // Wire AI analysis buttons
+        vcVersionsList.querySelectorAll('.btn-show-version-ai').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const vid = btn.getAttribute('data-id');
+                const targetVer = versions.find(item => String(item.id) === String(vid));
+                if (targetVer) {
+                    showVersionAiModal(targetVer);
+                }
+            });
+        });
 
         // Wire delete version buttons
         vcVersionsList.querySelectorAll('.btn-del-version').forEach(btn => {
@@ -1765,6 +2424,59 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert('Error: ' + err.message);
                 }
             });
+        });
+    }
+
+    function showVersionAiModal(ver) {
+        if (!modalVersionAi) return;
+        const ai = ver.ai_analysis || {};
+        const aiProb = typeof ver.ai_probability === 'number' ? ver.ai_probability : (ai.ai_probability || 0);
+        const humanProb = typeof ai.human_probability === 'number' ? ai.human_probability : Math.max(0, 100 - aiProb);
+        const classification = ai.classification || ver.ai_classification || (aiProb >= 50 ? 'Likely AI-generated' : 'Likely human-written');
+        const confidence = ai.confidence || 'Moderate';
+        const wordCount = ai.word_count || ver.word_count || 'Analyzed';
+        const assessment = ai.assessment_detail || (
+            aiProb >= 70 ? 'The sequence patterns, token distributions, and structural style strongly match patterns identified by the neural classifier as machine-generated text.' :
+            (aiProb <= 30 ? 'The sequence patterns, structural style, and syntactic variance strongly align with patterns identified by the neural classifier as organic human writing.' :
+            'The document exhibits mixed stylistic signals, showing traits common to both human writing and AI-assisted generation.')
+        );
+
+        if (verAiModalTitle) verAiModalTitle.textContent = `Version ${ver.version_number} AI Content Analysis`;
+        if (verAiModalSubtitle) verAiModalSubtitle.textContent = `${ver.filename} • Analyzed via RoBERTa (HC3 benchmark)`;
+        if (verAiVal) verAiVal.textContent = `${aiProb.toFixed(1)}%`;
+        if (verHumanVal) verHumanVal.textContent = `${humanProb.toFixed(1)}%`;
+        if (verAiBarFill) verAiBarFill.style.width = `${Math.min(100, Math.max(0, aiProb))}%`;
+        if (verAiHumanLegend) verAiHumanLegend.textContent = `Organic Human: ${humanProb.toFixed(1)}%`;
+        if (verAiAiLegend) verAiAiLegend.textContent = `Synthetic AI: ${aiProb.toFixed(1)}%`;
+
+        if (verAiClassPill) {
+            const isAi = aiProb >= 50;
+            verAiClassPill.textContent = (isAi ? '🤖 ' : '✍️ ') + classification;
+            verAiClassPill.className = `ai-pill ${isAi ? 'ai-pill-ai' : 'ai-pill-human'}`;
+        }
+        if (verAiConfPill) verAiConfPill.textContent = `${confidence} Confidence`;
+        if (verAiWordsPill) verAiWordsPill.textContent = `${typeof wordCount === 'number' ? wordCount.toLocaleString() : wordCount} Words`;
+        if (verAiAssessmentText) verAiAssessmentText.textContent = assessment;
+        if (btnDownloadVersionAiReport) btnDownloadVersionAiReport.href = `/api/vc/versions/${ver.id}/ai-report`;
+
+        modalVersionAi.style.display = 'flex';
+    }
+
+    if (btnCloseVersionAiModal && modalVersionAi) {
+        btnCloseVersionAiModal.addEventListener('click', () => {
+            modalVersionAi.style.display = 'none';
+        });
+    }
+    if (btnCloseVersionAiModalBtn && modalVersionAi) {
+        btnCloseVersionAiModalBtn.addEventListener('click', () => {
+            modalVersionAi.style.display = 'none';
+        });
+    }
+    if (modalVersionAi) {
+        modalVersionAi.addEventListener('click', (e) => {
+            if (e.target === modalVersionAi) {
+                modalVersionAi.style.display = 'none';
+            }
         });
     }
 
@@ -1822,12 +2534,16 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         comparisons.forEach(c => {
+            const v1Num = c.v1_num !== undefined ? c.v1_num : (c.prev_version_number !== undefined ? c.prev_version_number : 1);
+            const v1Name = c.v1_name || c.prev_filename || 'Baseline';
+            const v2Num = c.v2_num !== undefined ? c.v2_num : (c.new_version_number !== undefined ? c.new_version_number : 2);
+            const v2Name = c.v2_name || c.new_filename || 'Revision';
             const simPct = (c.version_similarity || 0).toFixed(1) + '%';
             const matchPct = (c.matching_percentage || 0).toFixed(1) + '%';
             html += `
                 <tr>
-                    <td><strong>V${c.prev_version_number}</strong> (${escapeHtml(c.prev_filename)})</td>
-                    <td><strong>V${c.new_version_number}</strong> (${escapeHtml(c.new_filename)})</td>
+                    <td><strong>V${v1Num}</strong> (${escapeHtml(v1Name)})</td>
+                    <td><strong>V${v2Num}</strong> (${escapeHtml(v2Name)})</td>
                     <td><span class="badge-status badge-status-modified">${simPct}</span></td>
                     <td><span class="badge-status badge-status-unchanged">${matchPct}</span></td>
                     <td>${c.created_at}</td>
@@ -2059,6 +2775,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (vcKpiMatchVal) vcKpiMatchVal.textContent = matchVal + '%';
         if (vcKpiMatchBar) vcKpiMatchBar.style.width = Math.min(100, Math.max(0, matchVal)) + '%';
 
+
         // Quad Stats
         const st = compData.statistics || {};
         if (vcStatUnchanged) vcStatUnchanged.textContent = st.unchanged || 0;
@@ -2118,5 +2835,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateStatusHint();
     loadHistory();
     checkVcAuthStatus();
+    activateMode('home');
 });
 

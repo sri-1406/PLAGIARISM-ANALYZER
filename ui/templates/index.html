@@ -1,85 +1,319 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plagiarism Analyzer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=17.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=39.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
 </head>
 
 <body>
     <div class="app-wrapper">
-        <!-- TOP NAVIGATION BAR -->
-        <header class="navbar">
-            <div class="nav-container">
-                <div class="brand">
-                    <div class="brand-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                            <path d="m9 12 2 2 4-4"/>
-                        </svg>
-                    </div>
-                    <div class="brand-text">
-                        <div class="brand-title">Plagiarism Analyzer</div>
-                    </div>
-                </div>
-
-                <div class="nav-controls">
-                    <!-- MODE TOGGLE -->
-                    <div class="mode-switcher" role="tablist">
-                        <button id="singleMode" class="btn-mode active" role="tab" aria-selected="true">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                            <span>Single Document</span>
-                        </button>
-                        <button id="multiMode" class="btn-mode" role="tab" aria-selected="false">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                            <span>Multi-Compare</span>
-                        </button>
-                        <button id="versionMode" class="btn-mode" role="tab" aria-selected="false">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
-                            <span>Version Control</span>
-                        </button>
-                    </div>
-
-                    <!-- USER AUTH WIDGET -->
-                    <div id="navAuthWidget" class="nav-auth-widget">
-                        <button type="button" id="btnNavAuth" class="btn-nav-auth" title="Sign In">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                            <span id="navAuthLabel">Sign In</span>
-                        </button>
-                        <button type="button" id="btnNavLogout" class="btn-nav-logout" style="display: none;" title="Sign Out">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                        </button>
-                    </div>
-
-                    <!-- THEME TOGGLE -->
-                    <button id="themeToggle" class="btn-theme" title="Toggle Theme" aria-label="Toggle Dark and Light Mode">
-                        <span class="icon-dark">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-                        </span>
-                        <span class="icon-light">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                        </span>
-                    </button>
-                </div>
-            </div>
-        </header>
+        <!-- FLOATING THEME TOGGLE (CLEAN CORNER BUTTON) -->
+        <button id="themeToggle" class="floating-theme-toggle" title="Toggle Theme" aria-label="Toggle Dark and Light Mode">
+            <span class="icon-dark">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+            </span>
+            <span class="icon-light">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5" />
+                    <line x1="12" y1="1" x2="12" y2="3" />
+                    <line x1="12" y1="21" x2="12" y2="23" />
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                    <line x1="1" y1="12" x2="3" y2="12" />
+                    <line x1="21" y1="12" x2="23" y2="12" />
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+            </span>
+        </button>
 
         <!-- MAIN CONTAINER -->
         <main class="main-content">
-            <!-- HERO INTRODUCTION -->
-            <section class="hero-section">
-                <div class="hero-badge">
-                    <span class="badge-dot pulse"></span>
-                    <span>10-Stage Pipeline • TF-IDF Vector Space • Official Audit Reports</span>
+            <!-- HOME LANDING SECTION -->
+            <section id="homeSection" class="home-section">
+                <!-- AMBIENT LAYERED BACKGROUND GLOW & TECHNICAL PATTERN -->
+                <div class="home-bg-ambient" aria-hidden="true">
+                    <div class="ambient-glow glow-hero-purple"></div>
+                    <div class="ambient-glow glow-hero-cyan"></div>
+                    <div class="ambient-glow glow-features-center"></div>
+                    <div class="ambient-orb orb-1"></div>
+                    <div class="ambient-orb orb-2"></div>
+                    <div class="ambient-orb orb-3"></div>
+                    <div class="ambient-mesh-grid"></div>
+                    <div class="ambient-particles">
+                        <span class="particle p1"></span>
+                        <span class="particle p2"></span>
+                        <span class="particle p3"></span>
+                        <span class="particle p4"></span>
+                        <span class="particle p5"></span>
+                    </div>
                 </div>
-                <h1 class="hero-headline">Deep Text Integrity & Plagiarism Analysis</h1>
-                <p class="hero-subline">
-                    Analyze academic essays, research papers, and technical manuscripts against your document database with instant similarity scoring and downloadable comprehensive audit reports.
+
+                <!-- 1. HERO SECTION -->
+                <div class="home-hero-container" id="homeHero">
+                    <div class="home-hero-content">
+                        <div class="hero-badge">
+                            <span class="badge-dot pulse"></span>
+                            <span>AI-POWERED DOCUMENT ANALYSIS</span>
+                        </div>
+                        <h1 class="home-title">
+                            <span class="gradient-text-hero">Plagiarism Analyzer</span>
+                        </h1>
+                        <p class="home-tagline">
+                            Advanced similarity detection, multi-document comparison, and version tracking.
+                        </p>
+                        <div class="home-hero-actions">
+                            <a href="#homeFeatures" class="btn-hero-secondary" id="heroLearnMoreBtn">
+                                <span>Explore Features</span>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9" />
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- HERO VISUAL: VERTICAL WORKFLOW STEPS -->
+                    <div class="home-hero-visual">
+                        <div class="hero-workflow-card">
+                            <div class="workflow-card-header">
+                                <span class="workflow-badge">
+                                    <span class="workflow-dot"></span>
+                                    <span>WORKFLOW</span>
+                                </span>
+                                <h3 class="workflow-card-title">Simple Process. Clear Results.</h3>
+                            </div>
+
+                            <div class="vsteps-timeline">
+                                <!-- STEP 01 -->
+                                <div class="vstep-item">
+                                    <div class="vstep-gutter">
+                                        <div class="vstep-badge vstep-badge-purple">01</div>
+                                        <div class="vstep-connector-line"></div>
+                                    </div>
+                                    <div class="vstep-body">
+                                        <div class="vstep-header">
+                                            <div class="vstep-icon-box vstep-icon-purple">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                    <polyline points="17 8 12 3 7 8"/>
+                                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                                </svg>
+                                            </div>
+                                            <h4 class="vstep-title">Upload</h4>
+                                        </div>
+                                        <p class="vstep-desc">Upload a document or provide your text.</p>
+                                    </div>
+                                </div>
+
+                                <!-- STEP 02 -->
+                                <div class="vstep-item">
+                                    <div class="vstep-gutter">
+                                        <div class="vstep-badge vstep-badge-cyan">02</div>
+                                        <div class="vstep-connector-line"></div>
+                                    </div>
+                                    <div class="vstep-body">
+                                        <div class="vstep-header">
+                                            <div class="vstep-icon-box vstep-icon-cyan">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+                                                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+                                                    <line x1="6" y1="6" x2="6.01" y2="6"/>
+                                                    <line x1="6" y1="18" x2="6.01" y2="18"/>
+                                                </svg>
+                                            </div>
+                                            <h4 class="vstep-title">Analyze</h4>
+                                        </div>
+                                        <p class="vstep-desc">Choose a workflow and let the system process your content.</p>
+                                    </div>
+                                </div>
+
+                                <!-- STEP 03 -->
+                                <div class="vstep-item">
+                                    <div class="vstep-gutter">
+                                        <div class="vstep-badge vstep-badge-emerald">03</div>
+                                    </div>
+                                    <div class="vstep-body">
+                                        <div class="vstep-header">
+                                            <div class="vstep-icon-box vstep-icon-emerald">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                                </svg>
+                                            </div>
+                                            <h4 class="vstep-title">Review</h4>
+                                        </div>
+                                        <p class="vstep-desc">Explore similarity results, matching sentences, or document changes.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. THREE PREMIUM FEATURE CARDS (PRIMARY FOCUS) -->
+                <section class="home-features-section" id="homeFeatures">
+                    <div class="section-heading-center">
+                        <span class="home-section-tag">CORE WORKFLOWS</span>
+                        <h2 class="home-section-title">Everything You Need to Work With Documents</h2>
+                        <p class="home-section-subtitle">Choose the right tool for your task.</p>
+                    </div>
+
+                    <div class="three-features-grid">
+                        <!-- CARD 1: SINGLE DOCUMENT -->
+                        <div class="premium-feature-card card-purple-accent" id="cardHomeSingle">
+                            <div class="card-ambient-glow glow-purple"></div>
+                            <div class="p-card-header">
+                                <div class="p-icon-box icon-purple">
+                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                        <line x1="16" y1="13" x2="8" y2="13" />
+                                        <line x1="16" y1="17" x2="8" y2="17" />
+                                    </svg>
+                                </div>
+                                <span class="p-card-pill pill-purple">Instant Scan</span>
+                            </div>
+                            <h3 class="p-card-title">Single Document</h3>
+                            <p class="p-card-desc">Check one document for similar content and review matching sentences.</p>
+
+                            <!-- Decorative Visual: document illustration with highlighted lines -->
+                            <div class="card-mini-visual visual-single-doc">
+                                <div class="mini-doc-sheet">
+                                    <div class="mini-doc-line w-90"></div>
+                                    <div class="mini-doc-line w-75 line-highlight-purple"></div>
+                                    <div class="mini-doc-line w-85 line-highlight-purple"></div>
+                                    <div class="mini-doc-line w-60"></div>
+                                </div>
+                            </div>
+
+                            <div class="p-card-chips">
+                                <span class="p-chip"><span class="chip-dot dot-purple"></span>Similarity Detection</span>
+                                <span class="p-chip"><span class="chip-dot dot-purple"></span>Sentence Highlights</span>
+                                <span class="p-chip"><span class="chip-dot dot-purple"></span>Detailed Report</span>
+                            </div>
+
+                            <button type="button" id="btnHomeSingle" class="btn-p-card btn-p-purple">
+                                <span>Analyze Document →</span>
+                            </button>
+                        </div>
+
+                        <!-- CARD 2: MULTI-DOCUMENT COMPARISON -->
+                        <div class="premium-feature-card card-cyan-accent" id="cardHomeMulti">
+                            <div class="card-ambient-glow glow-cyan"></div>
+                            <div class="p-card-header">
+                                <div class="p-icon-box icon-cyan">
+                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                    </svg>
+                                </div>
+                                <span class="p-card-pill pill-cyan">Batch Compare</span>
+                            </div>
+                            <h3 class="p-card-title">Multi-Document Comparison</h3>
+                            <p class="p-card-desc">Compare multiple files to discover overlapping content and understand their similarities.</p>
+
+                            <!-- Decorative Visual: interconnected document tiles -->
+                            <div class="card-mini-visual visual-multi-docs">
+                                <div class="mini-tile-cluster">
+                                    <div class="mini-tile tile-a"><span>Doc A</span></div>
+                                    <div class="mini-tile-connector">
+                                        <span class="connector-line"></span>
+                                        <span class="connector-node"></span>
+                                    </div>
+                                    <div class="mini-tile tile-b"><span>Doc B</span></div>
+                                </div>
+                            </div>
+
+                            <div class="p-card-chips">
+                                <span class="p-chip"><span class="chip-dot dot-cyan"></span>Multiple File Comparison</span>
+                                <span class="p-chip"><span class="chip-dot dot-cyan"></span>Similarity Percentages</span>
+                                <span class="p-chip"><span class="chip-dot dot-cyan"></span>Comparison Heatmap</span>
+                            </div>
+
+                            <button type="button" id="btnHomeMulti" class="btn-p-card btn-p-cyan">
+                                <span>Compare Documents →</span>
+                            </button>
+                        </div>
+
+                        <!-- CARD 3: VERSION CONTROL -->
+                        <div class="premium-feature-card card-amber-accent" id="cardHomeVersion">
+                            <div class="card-ambient-glow glow-amber"></div>
+                            <div class="p-card-header">
+                                <div class="p-icon-box icon-amber">
+                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="18" cy="18" r="3" />
+                                        <circle cx="6" cy="6" r="3" />
+                                        <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+                                        <line x1="6" y1="9" x2="6" y2="21" />
+                                    </svg>
+                                </div>
+                                <span class="p-card-pill pill-amber">Diff &amp; Drift</span>
+                            </div>
+                            <h3 class="p-card-title">Version Control</h3>
+                            <p class="p-card-desc">Track document revisions and see exactly what has been added, removed, or modified.</p>
+
+                            <!-- Decorative Visual: mini document diff with green additions and red removals -->
+                            <div class="card-mini-visual visual-diff-doc">
+                                <div class="mini-diff-box">
+                                    <div class="mini-diff-row diff-del">
+                                        <span class="diff-sign">-</span>
+                                        <span class="diff-text">Previous phrasing draft</span>
+                                    </div>
+                                    <div class="mini-diff-row diff-add">
+                                        <span class="diff-sign">+</span>
+                                        <span class="diff-text">Updated final wording</span>
+                                    </div>
+                                    <div class="mini-diff-timeline">
+                                        <span class="timeline-dot"></span>
+                                        <span class="timeline-label">Revision v2.1 committed</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-card-chips">
+                                <span class="p-chip"><span class="chip-dot dot-amber"></span>Version History</span>
+                                <span class="p-chip"><span class="chip-dot dot-amber"></span>Side-by-Side Comparison</span>
+                                <span class="p-chip"><span class="chip-dot dot-amber"></span>Change Highlights</span>
+                            </div>
+
+                            <button type="button" id="btnHomeVersion" class="btn-p-card btn-p-amber">
+                                <span>Track Versions →</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+
+
+
+            </section>
+
+            <!-- MODE HERO INTRODUCTION -->
+            <section class="hero-section" id="heroSection" style="display: none;">
+                <!-- WORKSPACE TOP HEADER BAR WITH BACK TO HOME -->
+                <div class="workspace-top-bar">
+                    <button type="button" class="btn-back-home" id="workspaceBackHomeBtn" title="Return to Home">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                        <span>Back to Home</span>
+                    </button>
+                </div>
+
+                <h1 class="hero-headline" id="heroHeadline">Single Document Plagiarism Analysis</h1>
+                <p class="hero-subline" id="heroSubline">
+                    Upload or paste your text to analyze plagiarism and originality with instant similarity scoring,
+                    sentence matching, and downloadable audit reports.
                 </p>
             </section>
 
@@ -93,17 +327,24 @@
                             <div class="editor-header-left">
                                 <span class="editor-title">Document Text Content</span>
                                 <div id="extractionBadge" class="extraction-badge" style="display: none;">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
                                     <span id="extractionFileName">sample.pdf</span>
                                 </div>
                             </div>
                             <div class="editor-tools">
-                                <button type="button" id="clearTextBtn" class="btn-text-action" title="Clear text">Clear</button>
-                                <button type="button" id="pasteClipboardBtn" class="btn-text-action highlight" title="Paste clipboard">Paste Clipboard</button>
+                                <button type="button" id="clearTextBtn" class="btn-text-action"
+                                    title="Clear text">Clear</button>
+                                <button type="button" id="pasteClipboardBtn" class="btn-text-action highlight"
+                                    title="Paste clipboard">Paste Clipboard</button>
                             </div>
                         </div>
 
-                        <textarea id="textInput" placeholder="Paste your text here to analyze, or upload a document below to extract its text..." rows="9"></textarea>
+                        <textarea id="textInput"
+                            placeholder="Paste your text here to analyze, or upload a document below to extract its text..."
+                            rows="9"></textarea>
 
                         <div class="editor-footer">
                             <div class="editor-counts">
@@ -119,10 +360,11 @@
                     <div class="compact-upload-wrapper">
                         <div class="compact-dropzone" id="singleDropZone">
                             <div class="compact-dropzone-icon">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
-                                    <path d="M12 12v9"/>
-                                    <path d="m16 16-4-4-4 4"/>
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+                                    <path d="M12 12v9" />
+                                    <path d="m16 16-4-4-4 4" />
                                 </svg>
                             </div>
                             <div class="compact-dropzone-info">
@@ -142,22 +384,28 @@
                 <div id="multiInputSection" style="display: none;">
                     <div class="multi-info-banner">
                         <div class="info-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                            </svg>
                         </div>
                         <div class="info-content">
                             <h4>Cross-Document Plagiarism Comparison</h4>
-                            <p>Upload 2 or more documents to calculate N×N symmetric TF-IDF similarity matrix, cross-file sentence alignments, and cluster overlaps.</p>
+                            <p>Upload 2 or more documents to calculate N×N symmetric TF-IDF similarity matrix,
+                                cross-file sentence alignments, and cluster overlaps.</p>
                         </div>
                     </div>
 
                     <div class="dropzone" id="multiDropZone">
                         <div class="dropzone-content">
                             <div class="dropzone-icon-pulse">
-                                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14 2 14 8 20 8"/>
-                                    <line x1="12" y1="18" x2="12" y2="12"/>
-                                    <line x1="9" y1="15" x2="15" y2="15"/>
+                                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.8">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                    <line x1="12" y1="18" x2="12" y2="12" />
+                                    <line x1="9" y1="15" x2="15" y2="15" />
                                 </svg>
                             </div>
                             <h3 class="dropzone-title">Drop 2 or more files to compare</h3>
@@ -184,16 +432,37 @@
                 <!-- ACTION CONTROLS -->
                 <div class="action-footer">
                     <div class="action-status-hint" id="actionStatusHint">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="16" x2="12" y2="12" />
+                            <line x1="12" y1="8" x2="12.01" y2="8" />
+                        </svg>
                         <span id="statusHintText">Ready to analyze document integrity.</span>
                     </div>
 
-                    <button id="analyzeBtn" class="btn-analyze">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                        </svg>
-                        <span id="analyzeBtnText">Analyze Plagiarism</span>
-                    </button>
+                    <div class="action-buttons-group">
+                        <button id="checkAiBtn" type="button" class="btn-check-ai"
+                            title="Analyze document for AI-generated text using RoBERTa">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="3" y="11" width="18" height="10" rx="2" />
+                                <circle cx="12" cy="5" r="2" />
+                                <path d="M12 7v4" />
+                                <line x1="8" y1="16" x2="8.01" y2="16" />
+                                <line x1="16" y1="16" x2="16.01" y2="16" />
+                            </svg>
+                            <span id="checkAiBtnText">Check AI Content</span>
+                        </button>
+
+                        <button id="analyzeBtn" class="btn-analyze">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                            </svg>
+                            <span id="analyzeBtnText">Analyze Plagiarism</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- MODERN SCANNER LOADER -->
@@ -203,7 +472,8 @@
                         <div class="spinner-pulse"></div>
                     </div>
                     <h4 class="loader-title">Analyzing Document Integrity...</h4>
-                    <p id="loaderStepText" class="loader-step">Initializing vector space models & tokenizing sentences...</p>
+                    <p id="loaderStepText" class="loader-step">Initializing vector space models & tokenizing
+                        sentences...</p>
                 </div>
 
                 <!-- ERROR BANNER -->
@@ -217,16 +487,25 @@
                     <div class="results-header-bar">
                         <div class="results-title-group">
                             <div class="result-badge-check">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
                             </div>
                             <div>
                                 <h2 class="results-heading">Analysis Result</h2>
-                                <p class="results-subheading">Statistical overview computed via TF-IDF vectorization & Jaccard sentence alignment</p>
+                                <p class="results-subheading">Statistical overview computed via TF-IDF vectorization &
+                                    Jaccard sentence alignment</p>
                             </div>
                         </div>
 
                         <button id="downloadSingleBtn" class="btn-download-hero">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
                             <span>Download Full PDF Report</span>
                         </button>
                     </div>
@@ -247,8 +526,8 @@
                                 <svg class="speedometer-svg" viewBox="0 0 200 110">
                                     <path class="gauge-track" d="M 20,100 A 80,80 0 0,1 180,100" fill="none"
                                         stroke="var(--gauge-bg)" stroke-width="14" stroke-linecap="round" />
-                                    <path d="M 20,100 A 80,80 0 0,1 53,35.2" fill="none" stroke="#10b981" stroke-width="14"
-                                        stroke-linecap="round" opacity="0.15" />
+                                    <path d="M 20,100 A 80,80 0 0,1 53,35.2" fill="none" stroke="#10b981"
+                                        stroke-width="14" stroke-linecap="round" opacity="0.15" />
                                     <path d="M 53,35.2 A 80,80 0 0,1 147,35.2" fill="none" stroke="#f59e0b"
                                         stroke-width="14" stroke-linecap="round" opacity="0.15" />
                                     <path d="M 147,35.2 A 80,80 0 0,1 180,100" fill="none" stroke="#ef4444"
@@ -275,59 +554,179 @@
                                     <div class="score-display">
                                         <span id="scoreVal">0.0%</span>
                                     </div>
-                                    <span class="label">Plagiarism Detected</span>
+                                    <span class="label">Similarity Detected</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- STAT METRICS QUAD -->
                         <div class="metrics-quad">
-                            <div class="stat-card">
-                                <div class="stat-icon-wrapper icon-danger">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <!-- CARD 1 (IDEA 4): AI CONTENT LIKELIHOOD -->
+                            <div class="stat-card stat-card-clickable" id="statCardAi" title="Click to view detailed AI content detection report">
+                                <div class="stat-icon-wrapper icon-ai" id="aiStatIconWrapper">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="11" width="18" height="10" rx="2" />
+                                        <circle cx="12" cy="5" r="2" />
+                                        <path d="M12 7v4" />
+                                        <line x1="8" y1="16" x2="8.01" y2="16" />
+                                        <line x1="16" y1="16" x2="16.01" y2="16" />
+                                    </svg>
                                 </div>
                                 <div class="stat-content">
-                                    <span class="stat-label">Plagiarism Ratio</span>
-                                    <div class="stat-value" id="statSimilarity">0.0%</div>
+                                    <span class="stat-label">AI Generation Likelihood</span>
+                                    <div class="stat-value" id="statAiProbability">--%</div>
                                     <div class="stat-bar-track">
-                                        <div class="stat-bar-fill" id="barSimilarity" style="width: 0%;"></div>
+                                        <div class="stat-bar-fill fill-ai" id="barAiProbability" style="width: 0%;"></div>
                                     </div>
+                                    <span class="stat-subtext" id="statAiClassification">Scanning neural patterns...</span>
                                 </div>
                             </div>
 
+                            <!-- CARD 2: DOCUMENT ORIGINALITY -->
                             <div class="stat-card">
                                 <div class="stat-icon-wrapper icon-success">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                        <polyline points="22 4 12 14.01 9 11.01" />
+                                    </svg>
                                 </div>
                                 <div class="stat-content">
                                     <span class="stat-label">Document Originality</span>
                                     <div class="stat-value text-success" id="statOriginality">100.0%</div>
                                     <div class="stat-bar-track">
-                                        <div class="stat-bar-fill fill-success" id="barOriginality" style="width: 100%;"></div>
+                                        <div class="stat-bar-fill fill-success" id="barOriginality"
+                                            style="width: 100%;"></div>
                                     </div>
+                                    <span class="stat-subtext" id="statOriginalitySubtext">Unique authentic text</span>
                                 </div>
                             </div>
 
+                            <!-- CARD 3 (IDEA 1): FLAGGED SENTENCES BREAKDOWN -->
                             <div class="stat-card">
-                                <div class="stat-icon-wrapper icon-info">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                                <div class="stat-icon-wrapper icon-info" id="flaggedStatIconWrapper">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <line x1="8" y1="6" x2="21" y2="6" />
+                                        <line x1="8" y1="12" x2="21" y2="12" />
+                                        <line x1="8" y1="18" x2="21" y2="18" />
+                                        <line x1="3" y1="6" x2="3.01" y2="6" />
+                                        <line x1="3" y1="12" x2="3.01" y2="12" />
+                                        <line x1="3" y1="18" x2="3.01" y2="18" />
+                                    </svg>
                                 </div>
                                 <div class="stat-content">
-                                    <span class="stat-label">Sentences Evaluated</span>
-                                    <div class="stat-value" id="statSentences">0</div>
-                                    <span class="stat-subtext" id="statFlaggedSentences">0 flagged matches</span>
+                                    <span class="stat-label">Flagged Sentences</span>
+                                    <div class="stat-value" id="statSentences">0 / 0</div>
+                                    <div class="stat-bar-track">
+                                        <div class="stat-bar-fill" id="barFlaggedSentences" style="width: 0%;"></div>
+                                    </div>
+                                    <span class="stat-subtext" id="statFlaggedSentences">0 clean sentences</span>
                                 </div>
                             </div>
 
-                            <div class="stat-card">
-                                <div class="stat-icon-wrapper icon-primary">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                            <!-- CARD 4 (IDEA 3): MATCH INTENSITY & TOP SOURCE -->
+                            <div class="stat-card" id="statCardSource">
+                                <div class="stat-icon-wrapper icon-primary" id="matchIntensityIconWrapper">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+                                        <path d="M2 12h20" />
+                                    </svg>
                                 </div>
                                 <div class="stat-content">
-                                    <span class="stat-label">Primary Correlated Source</span>
-                                    <div class="stat-value text-truncate" id="statTopSource" style="font-size: 1.1rem;">No Significant Source</div>
+                                    <div class="stat-header-flex">
+                                        <span class="stat-label">Match Intensity</span>
+                                        <span class="match-pill pill-clean" id="statIntensityPill">Zero Matches</span>
+                                    </div>
+                                    <div class="stat-value" id="statTopSource">
+                                        <span id="statTopSourceVal">0.0%</span><span class="stat-unit">Peak Overlap</span>
+                                    </div>
+                                    <div class="stat-bar-track">
+                                        <div class="stat-bar-fill fill-primary" id="barTopSource" style="width: 0%;"></div>
+                                    </div>
                                     <span class="stat-subtext" id="statTopSourceScore">Baseline Corpus Safe</span>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI-GENERATED CONTENT DETECTION CARD (ISOLATED COMPONENT) -->
+                    <div id="aiDetectionCard" class="card ai-detection-card" style="display: none;">
+                        <div class="ai-card-header">
+                            <div class="ai-card-title-group">
+                                <div class="ai-card-icon-badge">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <rect x="3" y="11" width="18" height="10" rx="2" />
+                                        <circle cx="12" cy="5" r="2" />
+                                        <path d="M12 7v4" />
+                                        <line x1="8" y1="16" x2="8.01" y2="16" />
+                                        <line x1="16" y1="16" x2="16.01" y2="16" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="ai-card-title">AI-Generated Content Detection</h3>
+                                    <p class="ai-card-subtitle">Neural language model analysis (RoBERTa • HC3 benchmark)
+                                    </p>
+                                </div>
+                            </div>
+                            <div id="aiClassificationPill" class="ai-pill ai-pill-inconclusive">
+                                <span class="ai-pill-dot"></span>
+                                <span id="aiClassificationText">Inconclusive</span>
+                            </div>
+                        </div>
+
+                        <div class="ai-metrics-container">
+                            <div class="ai-score-row">
+                                <div class="ai-metric-col">
+                                    <span class="ai-metric-label">AI Generation Likelihood</span>
+                                    <div class="ai-metric-val" id="aiProbabilityVal">0.0%</div>
+                                </div>
+                                <div class="ai-metric-col">
+                                    <span class="ai-metric-label">Human Authorship Likelihood</span>
+                                    <div class="ai-metric-val text-success" id="aiHumanProbabilityVal">100.0%</div>
+                                </div>
+                                <div class="ai-metric-col">
+                                    <span class="ai-metric-label">Analysis Confidence</span>
+                                    <div class="ai-metric-val" id="aiConfidenceVal">Moderate</div>
+                                </div>
+                                <div class="ai-metric-col">
+                                    <span class="ai-metric-label">Evaluated Segments</span>
+                                    <div class="ai-metric-val" id="aiChunksVal">1 Segment</div>
+                                </div>
+                            </div>
+
+                            <!-- PROBABILITY DUAL BAR -->
+                            <div class="ai-bar-wrapper">
+                                <div class="ai-bar-labels">
+                                    <span>Human: <strong id="aiBarHumanLabel">100%</strong></span>
+                                    <span>AI: <strong id="aiBarAiLabel">0%</strong></span>
+                                </div>
+                                <div class="ai-bar-track">
+                                    <div id="aiBarFillHuman" class="ai-bar-fill-human" style="width: 100%;"></div>
+                                    <div id="aiBarFillAi" class="ai-bar-fill-ai" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="ai-detail-box" id="aiAssessmentDetail">
+                                Awaiting document input for AI content analysis.
+                            </div>
+
+                            <!-- SCIENTIFIC DISCLAIMER -->
+                            <div class="ai-disclaimer-box">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                <span id="aiDisclaimerText">
+                                    <strong>Notice:</strong> AI content detection is probabilistic and heuristic. It
+                                    should be used as an informative indicator rather than definitive proof of
+                                    authorship, as false positives and false negatives may occur.
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -338,16 +737,25 @@
                     <div class="results-header-bar">
                         <div class="results-title-group">
                             <div class="result-badge-check">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
                             </div>
                             <div>
                                 <h2 class="results-heading">Inter-Document Comparison</h2>
-                                <p class="results-subheading">N×N Symmetric Cross-Document Matrix & Pairwise Alignments</p>
+                                <p class="results-subheading">N×N Symmetric Cross-Document Matrix & Pairwise Alignments
+                                </p>
                             </div>
                         </div>
 
                         <button id="downloadMultiBtn" class="btn-download-hero">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
                             <span>Download Multi-Report PDF</span>
                         </button>
                     </div>
@@ -356,7 +764,13 @@
                     <div class="multi-overview-grid">
                         <div class="stat-card">
                             <div class="stat-icon-wrapper icon-primary">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                    <line x1="16" y1="13" x2="8" y2="13" />
+                                    <line x1="16" y1="17" x2="8" y2="17" />
+                                </svg>
                             </div>
                             <div class="stat-content">
                                 <span class="stat-label">Documents Compared</span>
@@ -367,7 +781,13 @@
 
                         <div class="stat-card">
                             <div class="stat-icon-wrapper icon-info">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="18" cy="18" r="3" />
+                                    <circle cx="6" cy="6" r="3" />
+                                    <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+                                    <line x1="6" y1="9" x2="6" y2="21" />
+                                </svg>
                             </div>
                             <div class="stat-content">
                                 <span class="stat-label">Pairwise Comparisons</span>
@@ -378,24 +798,96 @@
 
                         <div class="stat-card">
                             <div class="stat-icon-wrapper icon-danger">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polygon
+                                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
                             </div>
                             <div class="stat-content">
                                 <span class="stat-label">Peak Overlap</span>
                                 <div class="stat-value" id="multiStatPeak">0.0%</div>
-                                <span class="stat-subtext text-truncate" id="multiStatPeakPair" title="Highest Pairwise Overlap">Highest Overlap</span>
+                                <span class="stat-subtext text-truncate" id="multiStatPeakPair"
+                                    title="Highest Pairwise Overlap">Highest Overlap</span>
                             </div>
                         </div>
 
                         <div class="stat-card">
                             <div class="stat-icon-wrapper icon-success">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="18" y1="20" x2="18" y2="10" />
+                                    <line x1="12" y1="20" x2="12" y2="4" />
+                                    <line x1="6" y1="20" x2="6" y2="14" />
+                                </svg>
                             </div>
                             <div class="stat-content">
                                 <span class="stat-label">Average Similarity</span>
                                 <div class="stat-value" id="multiStatAvg">0.0%</div>
                                 <span class="stat-subtext">Mean Corpus Overlap</span>
                             </div>
+                        </div>
+
+                        <!-- CARD 5: CORPUS AI CONTENT LIKELIHOOD -->
+                        <div class="stat-card stat-card-clickable" id="statCardMultiAi" title="Click to view detailed Multi-Document AI analysis">
+                            <div class="stat-icon-wrapper icon-ai" id="multiAiStatIconWrapper">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="11" width="18" height="10" rx="2" />
+                                    <circle cx="12" cy="5" r="2" />
+                                    <path d="M12 7v4" />
+                                    <line x1="8" y1="16" x2="8.01" y2="16" />
+                                    <line x1="16" y1="16" x2="16.01" y2="16" />
+                                </svg>
+                            </div>
+                            <div class="stat-content">
+                                <span class="stat-label">Corpus AI Likelihood</span>
+                                <div class="stat-value" id="multiStatAiProb">0.0%</div>
+                                <div class="stat-bar-track">
+                                    <div class="stat-bar-fill fill-ai" id="multiBarAiProb" style="width: 0%;"></div>
+                                </div>
+                                <span class="stat-subtext text-truncate" id="multiStatAiSub">Evaluating neural patterns...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MULTI-DOCUMENT AI CONTENT & AUTHORSHIP AUDIT SECTION -->
+                    <div id="multiAiSection" class="card multi-ai-card" style="margin-bottom: 2rem;">
+                        <div class="ai-card-header">
+                            <div class="ai-card-title-group">
+                                <div class="ai-card-icon-badge">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="11" width="18" height="10" rx="2" />
+                                        <circle cx="12" cy="5" r="2" />
+                                        <path d="M12 7v4" />
+                                        <line x1="8" y1="16" x2="8.01" y2="16" />
+                                        <line x1="16" y1="16" x2="16.01" y2="16" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="ai-card-title">Multi-Document AI Content &amp; Authorship Audit</h3>
+                                    <p class="ai-card-subtitle">Neural language model evaluation (RoBERTa • HC3 benchmark) across all compared documents</p>
+                                </div>
+                            </div>
+                            <div class="multi-ai-pills">
+                                <span class="ai-pill ai-pill-ai" id="multiAiFlaggedBadge">0 AI Flagged</span>
+                                <span class="ai-pill ai-pill-human" id="multiHumanBadge">0 Human Written</span>
+                            </div>
+                        </div>
+                        <div class="multi-ai-table-wrap">
+                            <table class="multi-ai-table" id="multiAiTable">
+                                <thead>
+                                    <tr>
+                                        <th>Document File</th>
+                                        <th>Word Count</th>
+                                        <th>AI Generation Likelihood</th>
+                                        <th>Authorship Classification</th>
+                                        <th>Confidence</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="multiAiTableBody">
+                                    <!-- Populated dynamically via JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -421,11 +913,16 @@
                     <div class="history-header">
                         <div class="history-title-group">
                             <div class="history-icon-badge">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <polyline points="12 6 12 12 16 14" />
+                                </svg>
                             </div>
                             <div>
                                 <h3 class="section-title">Recent Document Audits</h3>
-                                <p class="history-subtitle">Search, filter, re-inspect, or download previously analyzed document audits</p>
+                                <p class="history-subtitle">Search, filter, re-inspect, or download previously analyzed
+                                    document audits</p>
                             </div>
                         </div>
 
@@ -435,16 +932,26 @@
                     <!-- HISTORY CONTROLS TOOLBAR -->
                     <div class="history-toolbar">
                         <div class="history-search-wrapper">
-                            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input type="text" id="historySearchInput" placeholder="Search audits by text or Audit #..." autocomplete="off">
-                            <button type="button" id="historyClearSearch" class="search-clear-btn" style="display: none;">×</button>
+                            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <input type="text" id="historySearchInput"
+                                placeholder="Search audits by file name, text, or ID..." autocomplete="off">
+                            <button type="button" id="historyClearSearch" class="search-clear-btn"
+                                style="display: none;">×</button>
                         </div>
 
                         <div class="history-filter-group">
-                            <button type="button" class="history-filter-btn active" data-filter="all">All Audits</button>
-                            <button type="button" class="history-filter-btn" data-filter="clean">Clean (&lt;40%)</button>
-                            <button type="button" class="history-filter-btn" data-filter="moderate">Moderate (40-69%)</button>
-                            <button type="button" class="history-filter-btn" data-filter="critical">High Risk (≥70%)</button>
+                            <button type="button" class="history-filter-btn active" data-filter="all">All
+                                Audits</button>
+                            <button type="button" class="history-filter-btn" data-filter="clean">Clean
+                                (&lt;40%)</button>
+                            <button type="button" class="history-filter-btn" data-filter="moderate">Moderate
+                                (40-69%)</button>
+                            <button type="button" class="history-filter-btn" data-filter="critical">High Risk
+                                (≥70%)</button>
                         </div>
                     </div>
 
@@ -468,11 +975,16 @@
                 <div id="vcAuthGate" class="card vc-auth-card">
                     <div class="vc-auth-hero">
                         <div class="vc-auth-icon-circle">
-                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/><path d="M12 14v3"/></svg>
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                <circle cx="12" cy="11" r="3" />
+                                <path d="M12 14v3" />
+                            </svg>
                         </div>
                         <h2 class="vc-auth-title">Version Control & Document Evolution</h2>
                         <p class="vc-auth-sub">
-                            Sign in or create an account to access private, permanent document versioning, 
+                            Sign in or create an account to access private, permanent document versioning,
                             lifecycle evolution tracking, and isolated multi-metric version comparisons.
                         </p>
                     </div>
@@ -487,11 +999,13 @@
                         <form id="vcLoginForm" class="vc-auth-form">
                             <div class="form-group">
                                 <label for="vcLoginEmail">Email Address</label>
-                                <input type="email" id="vcLoginEmail" placeholder="you@university.edu" required autocomplete="email">
+                                <input type="email" id="vcLoginEmail" placeholder="you@university.edu" required
+                                    autocomplete="email">
                             </div>
                             <div class="form-group">
                                 <label for="vcLoginPassword">Password</label>
-                                <input type="password" id="vcLoginPassword" placeholder="••••••••" required autocomplete="current-password">
+                                <input type="password" id="vcLoginPassword" placeholder="••••••••" required
+                                    autocomplete="current-password">
                             </div>
                             <div id="vcLoginError" class="vc-auth-error" style="display: none;"></div>
                             <button type="submit" id="btnVcSubmitLogin" class="btn-primary-hero">
@@ -503,15 +1017,18 @@
                         <form id="vcRegisterForm" class="vc-auth-form" style="display: none;">
                             <div class="form-group">
                                 <label for="vcRegName">Full Name</label>
-                                <input type="text" id="vcRegName" placeholder="Dr. Jane Doe" required autocomplete="name">
+                                <input type="text" id="vcRegName" placeholder="Dr. Jane Doe" required
+                                    autocomplete="name">
                             </div>
                             <div class="form-group">
                                 <label for="vcRegEmail">Email Address</label>
-                                <input type="email" id="vcRegEmail" placeholder="you@university.edu" required autocomplete="email">
+                                <input type="email" id="vcRegEmail" placeholder="you@university.edu" required
+                                    autocomplete="email">
                             </div>
                             <div class="form-group">
                                 <label for="vcRegPassword">Create Password</label>
-                                <input type="password" id="vcRegPassword" placeholder="Min. 4 characters" required minlength="4" autocomplete="new-password">
+                                <input type="password" id="vcRegPassword" placeholder="Min. 4 characters" required
+                                    minlength="4" autocomplete="new-password">
                             </div>
                             <div id="vcRegError" class="vc-auth-error" style="display: none;"></div>
                             <button type="submit" id="btnVcSubmitRegister" class="btn-primary-hero">
@@ -538,7 +1055,11 @@
                         </div>
                         <div class="vc-top-actions">
                             <button type="button" id="btnOpenNewGroupModal" class="btn-hero-action">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
                                 <span>New Document</span>
                             </button>
                             <button type="button" id="btnVcLogout" class="btn-secondary-action">
@@ -551,7 +1072,11 @@
                     <div class="vc-metrics-row">
                         <div class="vc-stat-card">
                             <div class="stat-icon-wrapper icon-primary">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                    <polyline points="14 2 14 8 20 8" />
+                                </svg>
                             </div>
                             <div class="stat-content">
                                 <span class="stat-label">Document Groups</span>
@@ -562,7 +1087,13 @@
 
                         <div class="vc-stat-card">
                             <div class="stat-icon-wrapper icon-info">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="18" cy="18" r="3" />
+                                    <circle cx="6" cy="6" r="3" />
+                                    <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+                                    <line x1="6" y1="9" x2="6" y2="21" />
+                                </svg>
                             </div>
                             <div class="stat-content">
                                 <span class="stat-label">Versions Preserved</span>
@@ -573,7 +1104,10 @@
 
                         <div class="vc-stat-card">
                             <div class="stat-icon-wrapper icon-success">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
                             </div>
                             <div class="stat-content">
                                 <span class="stat-label">Evolution Audits</span>
@@ -588,10 +1122,12 @@
                         <div class="section-title-wrap">
                             <div>
                                 <h3 class="section-title">My Document Repositories</h3>
-                                <p class="section-subtitle">Permanently stored documents and their historical revisions</p>
+                                <p class="section-subtitle">Permanently stored documents and their historical revisions
+                                </p>
                             </div>
                             <div class="vc-search-wrap">
-                                <input type="text" id="vcGroupSearch" placeholder="Filter documents..." class="vc-search-input">
+                                <input type="text" id="vcGroupSearch" placeholder="Filter documents..."
+                                    class="vc-search-input">
                             </div>
                         </div>
 
@@ -602,11 +1138,19 @@
                     <div id="vcGroupDetailContainer" class="card vc-content-card" style="display: none;">
                         <div class="vc-view-header">
                             <button type="button" id="btnBackToGroups" class="btn-back-nav">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="19" y1="12" x2="5" y2="12" />
+                                    <polyline points="12 19 5 12 12 5" />
+                                </svg>
                                 <span>Back to My Documents</span>
                             </button>
                             <button type="button" id="btnUploadNextVersion" class="btn-hero-action">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
                                 <span id="btnUploadNextVerLabel">+ Upload Next Version</span>
                             </button>
                         </div>
@@ -628,7 +1172,8 @@
                         <!-- ARBITRARY VERSION COMPARISON TOOLBAR -->
                         <div class="vc-arbitrary-compare-box">
                             <div class="vc-compare-prompt">
-                                <strong>Cross-Version Comparison:</strong> Select any two revisions from this repository to compare
+                                <strong>Cross-Version Comparison:</strong> Select any two revisions from this repository
+                                to compare
                             </div>
                             <div class="vc-compare-selectors">
                                 <div class="vc-select-col">
@@ -641,7 +1186,14 @@
                                     <select id="vcSelectV2" class="vc-select"></select>
                                 </div>
                                 <button type="button" id="btnRunArbitraryCompare" class="btn-hero-action">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5">
+                                        <polyline points="16 3 21 3 21 8" />
+                                        <line x1="4" y1="20" x2="21" y2="3" />
+                                        <polyline points="21 16 21 21 16 21" />
+                                        <line x1="15" y1="15" x2="21" y2="21" />
+                                        <line x1="4" y1="4" x2="9" y2="9" />
+                                    </svg>
                                     <span>Compare Selected</span>
                                 </button>
                             </div>
@@ -658,11 +1210,20 @@
                     <div id="vcComparisonContainer" class="card vc-content-card" style="display: none;">
                         <div class="vc-view-header">
                             <button type="button" id="btnBackToGroupDetail" class="btn-back-nav">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="19" y1="12" x2="5" y2="12" />
+                                    <polyline points="12 19 5 12 12 5" />
+                                </svg>
                                 <span>Back to Version Timeline</span>
                             </button>
                             <button type="button" id="btnDownloadVcReport" class="btn-download-hero">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
                                 <span>Download Version PDF Report</span>
                             </button>
                         </div>
@@ -686,7 +1247,8 @@
                                 <div class="stat-bar-track">
                                     <div class="stat-bar-fill" id="vcKpiSimBar" style="width: 0%;"></div>
                                 </div>
-                                <span class="vc-kpi-desc">Macro-level semantic & structural closeness across document versions</span>
+                                <span class="vc-kpi-desc">Macro-level semantic & structural closeness across document
+                                    versions</span>
                             </div>
 
                             <div class="vc-kpi-card">
@@ -698,7 +1260,8 @@
                                 <div class="stat-bar-track">
                                     <div class="stat-bar-fill" id="vcKpiMatchBar" style="width: 0%;"></div>
                                 </div>
-                                <span class="vc-kpi-desc">Micro-level verbatim and substantial copying ratio against baseline revision</span>
+                                <span class="vc-kpi-desc">Micro-level verbatim and substantial copying ratio against
+                                    baseline revision</span>
                             </div>
                         </div>
 
@@ -730,17 +1293,31 @@
                         <div class="vc-report-cta-card">
                             <div class="vc-report-cta-info">
                                 <div class="vc-report-cta-icon">
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                        <line x1="16" y1="13" x2="8" y2="13" />
+                                        <line x1="16" y1="17" x2="8" y2="17" />
+                                        <line x1="10" y1="9" x2="8" y2="9" />
+                                    </svg>
                                 </div>
                                 <div>
                                     <h4 class="vc-report-cta-title">Sentence-Level Diff & Evolution Audit Complete</h4>
                                     <p class="vc-report-cta-desc">
-                                        All sentence comparisons, verbatim matching alignments, and 4-way classification diffs (Unchanged, Modified, Added, Removed) are compiled inside the downloadable official audit report.
+                                        All sentence comparisons, verbatim matching alignments, and 4-way classification
+                                        diffs (Unchanged, Modified, Added, Removed) are compiled inside the downloadable
+                                        official audit report.
                                     </p>
                                 </div>
                             </div>
                             <button type="button" class="btn-download-hero" id="btnDownloadVcReportCta">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
                                 <span>Download Full Audit PDF Report</span>
                             </button>
                         </div>
@@ -758,7 +1335,8 @@
                             <div class="vc-modal-body">
                                 <div class="form-group">
                                     <label for="newGroupTitle">Document Repository Name</label>
-                                    <input type="text" id="newGroupTitle" placeholder="e.g. Master Thesis / Research Paper" required>
+                                    <input type="text" id="newGroupTitle"
+                                        placeholder="e.g. Master Thesis / Research Paper" required>
                                 </div>
                                 <div class="form-group">
                                     <label>Initial Document File (Version 1)</label>
@@ -768,7 +1346,8 @@
                                             <p id="labelNewGroupFile">Click to browse or drop .pdf, .docx, .txt</p>
                                         </div>
                                     </div>
-                                    <input type="file" id="fileNewGroup" accept=".txt,.pdf,.docx" style="display: none;" required>
+                                    <input type="file" id="fileNewGroup" accept=".txt,.pdf,.docx" style="display: none;"
+                                        required>
                                 </div>
                                 <div id="errorNewGroup" class="vc-auth-error" style="display: none;"></div>
                             </div>
@@ -793,7 +1372,7 @@
                             <input type="hidden" id="uploadVersionGroupId">
                             <div class="vc-modal-body">
                                 <div class="vc-modal-group-info" id="infoUploadModalGroup">Document: --</div>
-                                
+
                                 <div class="form-group">
                                     <label>New Document File</label>
                                     <div class="vc-modal-dropzone" id="dropzoneUploadVersion">
@@ -802,7 +1381,8 @@
                                             <p id="labelUploadVersionFile">Click to browse or drop .pdf, .docx, .txt</p>
                                         </div>
                                     </div>
-                                    <input type="file" id="fileUploadVersion" accept=".txt,.pdf,.docx" style="display: none;" required>
+                                    <input type="file" id="fileUploadVersion" accept=".txt,.pdf,.docx"
+                                        style="display: none;" required>
                                 </div>
 
                                 <div class="form-group">
@@ -822,23 +1402,158 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- MODAL 3: VERSION AI CONTENT ANALYSIS -->
+                <div id="modalVersionAi" class="vc-modal-backdrop" style="display: none;">
+                    <div class="vc-modal-dialog vc-modal-ai-dialog">
+                        <div class="vc-modal-header">
+                            <div class="vc-ai-modal-title-group">
+                                <span class="vc-ai-modal-icon">🤖</span>
+                                <div>
+                                    <h3 class="vc-modal-title" id="verAiModalTitle">Version AI Content Analysis</h3>
+                                    <p class="vc-modal-subtitle" id="verAiModalSubtitle">Neural language model evaluation (RoBERTa • HC3 benchmark)</p>
+                                </div>
+                            </div>
+                            <button type="button" class="vc-modal-close" id="btnCloseVersionAiModal">×</button>
+                        </div>
+                        <div class="vc-modal-body">
+                            <!-- AI PROBABILITY GAUGE / METER -->
+                            <div class="vc-ai-kpi-banner">
+                                <div class="vc-ai-kpi-box">
+                                    <span class="vc-ai-kpi-sub">AI Likelihood</span>
+                                    <span class="vc-ai-kpi-val text-ai" id="verAiVal">0.0%</span>
+                                </div>
+                                <div class="vc-ai-kpi-split">
+                                    <div class="stat-bar-track vc-ai-bar-track">
+                                        <div class="stat-bar-fill fill-ai" id="verAiBarFill" style="width: 0%;"></div>
+                                    </div>
+                                    <div class="vc-ai-legend-row">
+                                        <span id="verAiHumanLegend">Organic Human: 100.0%</span>
+                                        <span id="verAiAiLegend">Synthetic AI: 0.0%</span>
+                                    </div>
+                                </div>
+                                <div class="vc-ai-kpi-box">
+                                    <span class="vc-ai-kpi-sub">Organic Human</span>
+                                    <span class="vc-ai-kpi-val text-human" id="verHumanVal">100.0%</span>
+                                </div>
+                            </div>
+
+                            <div class="vc-ai-pills-row">
+                                <span class="ai-pill" id="verAiClassPill">Likely Human-written</span>
+                                <span class="ai-conf-badge" id="verAiConfPill">High Confidence</span>
+                                <span class="vc-meta-badge" id="verAiWordsPill">0 Words</span>
+                            </div>
+
+                            <!-- DETAILED ASSESSMENT EXPLANATION -->
+                            <div class="vc-ai-explanation-box">
+                                <h5 class="vc-ai-exp-head">Stylometric &amp; Perplexity Assessment</h5>
+                                <p id="verAiAssessmentText" class="vc-ai-exp-text">Analyzing text patterns...</p>
+                            </div>
+
+                            <div class="vc-ai-model-footer">
+                                <span>Model: <strong>RoBERTa-base (HC3 fine-tuned)</strong></span>
+                                <span>Inference: <strong>PyTorch Neural Classifier</strong></span>
+                            </div>
+                        </div>
+                        <div class="vc-modal-footer">
+                            <button type="button" class="btn-modal-cancel" id="btnCloseVersionAiModalBtn">Close</button>
+                            <a href="#" target="_blank" class="btn-hero-action" id="btnDownloadVersionAiReport">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                <span>Download AI Audit Report (PDF)</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
 
-        <!-- FOOTER -->
+        <!-- COMPACT DARK GLASS FOOTER -->
         <footer class="app-footer">
-            <div class="footer-container">
-                <div class="footer-brand">
-                    <span>Plagiarism Analyzer Pro</span> • Advanced Semantic Document Integrity Engine
+            <div class="footer-compact-container">
+                <div class="footer-brand-wrap">
+                    <div class="footer-brand-title">
+                        <div class="footer-brand-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <path d="m9 12 2 2 4-4"/>
+                            </svg>
+                        </div>
+                        <span class="footer-brand-name">Plagiarism Analyzer</span>
+                    </div>
+                    <p class="footer-compact-desc">A smarter way to analyze, compare, and manage documents.</p>
                 </div>
-                <div class="footer-tech">
-                    <span>NLTK Tokenization</span> • <span>TF-IDF Vector Space</span> • <span>ReportLab Engine</span>
+
+
+
+                <div class="footer-copyright">
+                    &copy; 2026 Plagiarism Analyzer. All rights reserved.
                 </div>
             </div>
         </footer>
+
+        <!-- AUTHENTICATION MODAL (LOGIN & SIGN UP) -->
+        <div id="authModal" class="auth-modal-backdrop" style="display: none;" aria-hidden="true">
+            <div class="auth-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="authModalHeading">
+                <div class="auth-modal-header">
+                    <div class="auth-modal-tabs" role="tablist">
+                        <button type="button" class="auth-tab active" id="tabAuthLogin" role="tab" aria-selected="true">Sign In</button>
+                        <button type="button" class="auth-tab" id="tabAuthSignup" role="tab" aria-selected="false">Create Account</button>
+                    </div>
+                    <button type="button" class="auth-modal-close" id="btnCloseAuthModal" aria-label="Close modal">&times;</button>
+                </div>
+                <div class="auth-modal-body">
+                    <div class="auth-heading-wrap">
+                        <h3 class="auth-modal-title" id="authModalHeading">Welcome Back</h3>
+                        <p class="auth-modal-sub" id="authModalSub">Access your document analysis history and saved reports.</p>
+                    </div>
+                    <form id="formAuth" class="auth-form" onsubmit="event.preventDefault();">
+                        <div class="form-field" id="fieldAuthName" style="display: none;">
+                            <label for="authName">Full Name</label>
+                            <input type="text" id="authName" placeholder="Dr. Jane Doe">
+                        </div>
+                        <div class="form-field">
+                            <label for="authEmail">Email Address</label>
+                            <input type="email" id="authEmail" placeholder="your.name@university.edu" required>
+                        </div>
+                        <div class="form-field">
+                            <label for="authPassword">Password</label>
+                            <input type="password" id="authPassword" placeholder="••••••••••••" required>
+                        </div>
+                        <div class="auth-options-row" id="authOptionsRow">
+                            <label class="auth-remember">
+                                <input type="checkbox" id="authRemember" checked>
+                                <span>Remember me</span>
+                            </label>
+                            <a href="javascript:void(0)" class="auth-forgot" id="authForgotLink">Forgot password?</a>
+                        </div>
+                        <button type="submit" class="btn-auth-submit" id="btnSubmitAuth">
+                            <span id="btnSubmitAuthText">Sign In</span>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                                <polyline points="12 5 19 12 12 19"/>
+                            </svg>
+                        </button>
+                        <div class="auth-divider">
+                            <span>or</span>
+                        </div>
+                        <button type="button" class="btn-auth-guest" id="btnGuestAccess">
+                            <span>Continue as Guest Researcher</span>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </button>
+                        <div id="authNotice" class="auth-notice" style="display: none;"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}?v=17.00"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}?v=34.0"></script>
 </body>
 
 </html>

@@ -210,23 +210,41 @@ class ReportGenerator:
         if curr_pos < len(raw_text):
             chunks.append(('unmatched', raw_text[curr_pos:], 0.0))
 
-        html_parts = []
+        all_paragraphs = []
+        current_para = []
+
         for kind, content, score in chunks:
-            escaped = html.escape(content).replace('\n', '<br/>')
-            if kind == 'matched' and score >= 10.0:
-                if score >= 70.0:
-                    color = '#dc2626'
-                elif score >= 40.0:
-                    color = '#ea580c'
+            if not content:
+                continue
+
+            # Split content on paragraph breaks (double newlines)
+            parts = re.split(r'(\r?\n\s*\r?\n)', content)
+            for part in parts:
+                if not part:
+                    continue
+                if re.match(r'^\r?\n\s*\r?\n$', part):
+                    # Paragraph break boundary
+                    if current_para:
+                        all_paragraphs.append("".join(current_para).strip())
+                        current_para = []
+                    continue
+
+                escaped = html.escape(part).replace('\n', '<br/>')
+                if kind == 'matched' and score >= 10.0 and part.strip():
+                    if score >= 70.0:
+                        color = '#dc2626'
+                    elif score >= 40.0:
+                        color = '#ea580c'
+                    else:
+                        color = '#0d9488'
+                    current_para.append(f'<b><font color="{color}">{escaped}</font></b> <font color="{color}">[{score:.1f}%]</font>')
                 else:
-                    color = '#0d9488'
-                html_parts.append(f'<b><font color="{color}">{escaped}</font></b> <font color="{color}">[{score:.1f}%]</font>')
-            else:
-                html_parts.append(f'<font color="#1e293b">{escaped}</font>')
-                
-        full_html = "".join(html_parts)
-        paragraphs_html = [p.strip() for p in full_html.split('<br/><br/>') if p.strip()]
-        return paragraphs_html
+                    current_para.append(f'<font color="#1e293b">{escaped}</font>')
+
+        if current_para:
+            all_paragraphs.append("".join(current_para).strip())
+
+        return [p for p in all_paragraphs if p]
 
     def generate_single_report(self, text, results, filename=None, report_id=None, file_type=None):
         buffer = io.BytesIO()
@@ -324,6 +342,18 @@ class ReportGenerator:
             [Paragraph("Highest Sentence Similarity", self.tbl_cell), Paragraph(f"<b>{highest_sentence_sim:.1f}% peak match</b>", self.tbl_cell), Paragraph("Maximum single match", self.tbl_cell)],
             [Paragraph("Analysis Execution Status", self.tbl_cell), Paragraph("<b>Completed ✓</b>", self.tbl_cell), Paragraph("Full pipeline executed", self.tbl_cell)],
         ]
+
+        ai_analysis = results.get('ai_analysis') or {}
+        if ai_analysis and ai_analysis.get('valid'):
+            ai_prob = float(ai_analysis.get('ai_probability', 0.0))
+            ai_cls = ai_analysis.get('classification', 'Inconclusive')
+            ai_color = '#dc2626' if ai_prob >= 70 else ('#ea580c' if ai_prob >= 40 else '#16a34a')
+            sec1_data.insert(3, [
+                Paragraph("AI Generation Likelihood (RoBERTa)", self.tbl_cell),
+                Paragraph(f"<b><font color='{ai_color}'>{ai_prob:.1f}%</font></b>", self.tbl_cell),
+                Paragraph(f"<b>{ai_cls}</b>", self.tbl_cell)
+            ])
+
         t_sec1 = Table(sec1_data, colWidths=[185, 140, 180])
         t_sec1.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#3b82f6')),
@@ -331,13 +361,40 @@ class ReportGenerator:
             ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
             ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f8fafc')]),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('TOPPADDING', (0,0), (-1,-1), 6),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+            ('TOPPADDING', (0,0), (-1,-1), 5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
             ('LEFTPADDING', (0,0), (-1,-1), 8),
             ('RIGHTPADDING', (0,0), (-1,-1), 8),
         ]))
         story.append(t_sec1)
-        story.append(Spacer(1, 14))
+        story.append(Spacer(1, 10))
+
+        # AI Neural Content Box if available
+        if ai_analysis and ai_analysis.get('valid'):
+            ai_prob = float(ai_analysis.get('ai_probability', 0.0))
+            human_prob = float(ai_analysis.get('human_probability', 100.0 - ai_prob))
+            ai_conf = ai_analysis.get('confidence', 'Moderate')
+            ai_cls = ai_analysis.get('classification', 'Inconclusive')
+            ai_det = ai_analysis.get('assessment_detail', '')
+            ai_audit_table = Table([
+                [
+                    Paragraph(
+                        f"<b>NEURAL AI CONTENT &amp; AUTHORSHIP AUDIT (RoBERTa • HC3 Fine-Tuned Model)</b><br/>"
+                        f"AI Generation Likelihood: <b>{ai_prob:.1f}%</b> &nbsp;|&nbsp; "
+                        f"Human Authorship Likelihood: <b>{human_prob:.1f}%</b> &nbsp;|&nbsp; "
+                        f"Status: <b>{ai_cls}</b> &nbsp;|&nbsp; Confidence: <b>{ai_conf}</b><br/>"
+                        f"<i>{html.escape(ai_det)}</i>",
+                        ParagraphStyle('AiDisc', parent=self.styles['Normal'], fontName='Helvetica', fontSize=8, leading=11, textColor=colors.HexColor('#1e293b'))
+                    )
+                ]
+            ], colWidths=[505])
+            ai_audit_table.setStyle(TableStyle([
+                ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#7c3aed')),
+                ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f5f3ff')),
+                ('PADDING', (0,0), (-1,-1), 6),
+            ]))
+            story.append(ai_audit_table)
+            story.append(Spacer(1, 10))
 
         # Disclaimer Box
         disclaimer_table = Table([
@@ -510,7 +567,12 @@ class ReportGenerator:
         # Highlighted Content Paragraphs
         paras = self._highlight_text(text, sentence_matches)
         for p in paras:
-            story.append(Paragraph(p, self.doc_content_style))
+            try:
+                story.append(Paragraph(p, self.doc_content_style))
+            except Exception:
+                # Safe fallback: strip tags and escape plain text
+                clean_text = re.sub(r'<[^>]+>', '', p)
+                story.append(Paragraph(html.escape(clean_text), self.doc_content_style))
             story.append(Spacer(1, 4))
             
         # Page Break for Section 5
@@ -644,7 +706,7 @@ class ReportGenerator:
         buffer.seek(0)
         return buffer
 
-    def generate_multi_report(self, doc_names, matrix, pairwise_results, report_id=None):
+    def generate_multi_report(self, doc_names, matrix, pairwise_results, report_id=None, ai_analysis=None):
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -716,6 +778,16 @@ class ReportGenerator:
             [Paragraph("High Similarity Pairs (≥ 70%)", self.tbl_cell), Paragraph(f"<b>{high_pairs} pairs</b>", self.tbl_cell_bold), Paragraph("Flagged critical duplicates" if high_pairs else "None detected", self.tbl_cell)],
             [Paragraph("Moderate Similarity Pairs (40–69%)", self.tbl_cell), Paragraph(f"<b>{mod_pairs} pairs</b>", self.tbl_cell_bold), Paragraph("Potential partial overlap" if mod_pairs else "None detected", self.tbl_cell)],
         ]
+
+        if ai_analysis:
+            avg_ai = float(ai_analysis.get('average_ai_probability', 0.0))
+            ai_flagged = ai_analysis.get('ai_flagged_count', 0)
+            ai_color = '#dc2626' if avg_ai >= 70 else ('#ea580c' if avg_ai >= 40 else '#16a34a')
+            summary_data.insert(5, [
+                Paragraph("Corpus AI Likelihood (RoBERTa)", self.tbl_cell),
+                Paragraph(f"<b><font color='{ai_color}'>{avg_ai:.1f}%</font></b>", self.tbl_cell_bold),
+                Paragraph(f"<b>{ai_flagged} of {num_docs}</b> files flagged as AI", self.tbl_cell)
+            ])
         t_summary = Table(summary_data, colWidths=[185, 140, 180])
         t_summary.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#3b82f6')),
@@ -884,11 +956,54 @@ class ReportGenerator:
             
             story.append(Spacer(1, 10))
 
-        # PageBreak to Section 4, 5, 6
+        # ==================== SECTION 4: AI CONTENT AUDIT ====================
+        if ai_analysis and ai_analysis.get('documents'):
+            story.append(PageBreak())
+            story.append(Paragraph("4. Multi-Document AI Content & Authorship Audit", self.section_heading_style))
+            story.append(Paragraph("Neural language model classification (RoBERTa fine-tuned classifier • HC3 benchmark) evaluating machine-generated likelihood across all analyzed corpus documents.", self.section_desc_style))
+            
+            ai_tbl_data = [
+                [
+                    Paragraph("Document File", self.tbl_hdr),
+                    Paragraph("Word Count", self.tbl_hdr),
+                    Paragraph("AI Likelihood", self.tbl_hdr),
+                    Paragraph("Authorship Status", self.tbl_hdr),
+                    Paragraph("Confidence", self.tbl_hdr)
+                ]
+            ]
+            for d in ai_analysis.get('documents', []):
+                ai_p = float(d.get('ai_probability', 0.0))
+                ai_col = '#dc2626' if ai_p >= 70 else ('#ea580c' if ai_p >= 40 else '#16a34a')
+                ai_tbl_data.append([
+                    Paragraph(f"<b>{html.escape(d.get('name', 'Document')[:26])}</b>", self.tbl_cell),
+                    Paragraph(f"{d.get('word_count', 0)} words", self.tbl_cell),
+                    Paragraph(f"<font color='{ai_col}'><b>{ai_p:.1f}%</b></font>", self.tbl_cell_bold),
+                    Paragraph(html.escape(d.get('classification', 'Inconclusive')), self.tbl_cell),
+                    Paragraph(html.escape(d.get('confidence', 'Moderate')), self.tbl_cell)
+                ])
+
+            t_ai_multi = Table(ai_tbl_data, colWidths=[165, 75, 80, 115, 70])
+            t_ai_multi.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#7c3aed')),
+                ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+                ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e2e8f0')),
+                ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f8fafc')]),
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('ALIGN', (1,1), (2,-1), 'CENTER'),
+                ('TOPPADDING', (0,0), (-1,-1), 5),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+                ('LEFTPADDING', (0,0), (-1,-1), 6),
+                ('RIGHTPADDING', (0,0), (-1,-1), 6),
+            ]))
+            story.append(t_ai_multi)
+            story.append(Spacer(1, 14))
+
+        # PageBreak to Technical Detection Method
         story.append(PageBreak())
 
         # ==================== TECHNICAL DETECTION METHOD & CONCLUSION ====================
-        story.append(Paragraph("4. Technical Detection Method (Multi-Compare)", self.section_heading_style))
+        tech_sec_num = "5" if (ai_analysis and ai_analysis.get('documents')) else "4"
+        story.append(Paragraph(f"{tech_sec_num}. Technical Detection Method (Multi-Compare)", self.section_heading_style))
         story.append(Paragraph("The comparative engine executes the following multi-document processing pipeline:", self.section_desc_style))
 
         multi_pipeline_data = [

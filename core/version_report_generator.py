@@ -250,7 +250,8 @@ class VersionReportGenerator:
             ('RIGHTPADDING', (0, 0), (-1, -1), 12),
         ]))
         story.append(kpi_table)
-        story.append(Spacer(1, 14))
+        story.append(Spacer(1, 12))
+
 
         # 4. Content Change Statistics Table
         stats = comparison_data.get('statistics', {})

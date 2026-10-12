@@ -14,6 +14,8 @@ import docx
 
 from core.version_comparator import VersionComparator
 from core.version_report_generator import VersionReportGenerator
+from core.report_generator import ReportGenerator
+from core.ai_content_detector import AIContentDetector
 
 DATABASE_PATH = 'database.db'
 VC_STORAGE_ROOT = os.path.join(os.path.dirname(__file__), '..', 'storage', 'version_control')
@@ -24,6 +26,7 @@ os.makedirs(VC_REPORTS_DIR, exist_ok=True)
 version_bp = Blueprint('version_bp', __name__)
 comparator = VersionComparator()
 report_generator = VersionReportGenerator()
+single_report_generator = ReportGenerator()
 
 ALLOWED_EXTENSIONS = {'.txt', '.pdf', '.docx'}
 
@@ -33,7 +36,7 @@ def get_db():
     return conn
 
 def init_vc_db():
-    """Ensure Version Control tables exist in database.db safely."""
+    """Ensure Version Control tables exist in database.db safely with AI detection support."""
     conn = get_db()
     c = conn.cursor()
     c.execute('''
@@ -63,6 +66,8 @@ def init_vc_db():
             filename TEXT NOT NULL,
             file_path TEXT NOT NULL,
             extracted_text TEXT NOT NULL,
+            ai_probability REAL DEFAULT 0.0,
+            ai_classification TEXT DEFAULT NULL,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (group_id) REFERENCES private_document_groups(id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -79,6 +84,7 @@ def init_vc_db():
             matching_percentage REAL NOT NULL,
             statistics TEXT,
             detailed_matches TEXT,
+            ai_analysis TEXT,
             report_path TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -87,8 +93,75 @@ def init_vc_db():
             FOREIGN KEY (new_version_id) REFERENCES private_document_versions(id) ON DELETE CASCADE
         )
     ''')
+
+    # Safe dynamic column migrations if existing tables lack AI fields
+    for col_def in [
+        ('private_document_versions', 'ai_probability', 'REAL DEFAULT 0.0'),
+        ('private_document_versions', 'ai_classification', 'TEXT DEFAULT NULL'),
+        ('private_document_versions', 'ai_details', 'TEXT DEFAULT NULL'),
+        ('version_comparisons', 'ai_analysis', 'TEXT DEFAULT NULL')
+    ]:
+        try:
+            c.execute(f"ALTER TABLE {col_def[0]} ADD COLUMN {col_def[1]} {col_def[2]}")
+        except Exception:
+            pass
+
+    # Clean up duplicate comparisons, retaining only the latest comparison for each distinct version pair
+    try:
+        c.execute('''
+            DELETE FROM version_comparisons
+            WHERE id NOT IN (
+                SELECT MAX(id)
+                FROM version_comparisons
+                GROUP BY group_id, user_id, 
+                         CASE WHEN prev_version_id < new_version_id THEN prev_version_id ELSE new_version_id END,
+                         CASE WHEN prev_version_id < new_version_id THEN new_version_id ELSE prev_version_id END
+            )
+        ''')
+    except Exception as e:
+        print(f"Comparison deduplication cleanup notice: {e}")
+
     conn.commit()
     conn.close()
+
+def compute_version_ai_analysis(base_text, rev_text):
+    """
+    Computes AI generation likelihood for baseline vs revision versions
+    and calculates AI authorship drift.
+    """
+    try:
+        detector = AIContentDetector.get_instance()
+        v1_ai = detector.detect(base_text)
+        v2_ai = detector.detect(rev_text)
+        v1_prob = float(v1_ai.get('ai_probability', 0.0))
+        v2_prob = float(v2_ai.get('ai_probability', 0.0))
+        drift = round(v2_prob - v1_prob, 1)
+
+        if drift > 15:
+            interp = f"Significant AI Influx (+{drift}%) - Revision incorporates substantial machine-generated content"
+        elif drift > 5:
+            interp = f"Moderate AI Shift (+{drift}%) - Slight increase in synthetic sentence patterns"
+        elif drift < -15:
+            interp = f"Substantial Human Revision ({drift}%) - Revision replaced synthetic text with authentic writing"
+        elif drift < -5:
+            interp = f"Shift toward Human Authorship ({drift}%) - Reduced machine generation signals"
+        else:
+            interp = f"Consistent Authorship Trajectory ({drift:+.1f}%) - Stable balance between revisions"
+
+        return {
+            "v1": v1_ai,
+            "v2": v2_ai,
+            "drift": drift,
+            "interpretation": interp
+        }
+    except Exception as e:
+        print(f"Error computing version AI analysis: {e}")
+        return {
+            "v1": {"ai_probability": 0.0, "classification": "Inconclusive", "confidence": "Low"},
+            "v2": {"ai_probability": 0.0, "classification": "Inconclusive", "confidence": "Low"},
+            "drift": 0.0,
+            "interpretation": "Analysis unavailable"
+        }
 
 def login_required(f):
     @wraps(f)
@@ -314,11 +387,24 @@ def create_document_group():
     file.seek(0)
     file.save(permanent_file_path)
 
+    # Compute AI content detection for Version 1
+    ai_prob = 0.0
+    ai_class = "Inconclusive"
+    ai_details_json = None
+    try:
+        v1_ai = AIContentDetector.get_instance().detect(extracted_text)
+        if v1_ai and v1_ai.get('valid'):
+            ai_prob = float(v1_ai.get('ai_probability', 0.0))
+            ai_class = v1_ai.get('classification', 'Inconclusive')
+            ai_details_json = json.dumps(v1_ai)
+    except Exception as e:
+        print(f"Version 1 AI detection notice: {e}")
+
     c.execute('''
         INSERT INTO private_document_versions 
-        (group_id, user_id, version_number, filename, file_path, extracted_text)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (group_id, user_id, 1, orig_filename, permanent_file_path, extracted_text))
+        (group_id, user_id, version_number, filename, file_path, extracted_text, ai_probability, ai_classification, ai_details)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (group_id, user_id, 1, orig_filename, permanent_file_path, extracted_text, ai_prob, ai_class, ai_details_json))
     version_id = c.lastrowid
     conn.commit()
     conn.close()
@@ -329,7 +415,9 @@ def create_document_group():
         "group_id": group_id,
         "version_id": version_id,
         "version_number": 1,
-        "document_name": doc_name
+        "document_name": doc_name,
+        "ai_probability": ai_prob,
+        "ai_classification": ai_class
     })
 
 @version_bp.route('/vc/groups/<int:group_id>', methods=['GET'])
@@ -348,7 +436,7 @@ def get_group_details(group_id):
 
     # Versions list
     c.execute('''
-        SELECT id, version_number, filename, file_path, created_at 
+        SELECT id, version_number, filename, file_path, created_at, ai_probability, ai_classification, ai_details 
         FROM private_document_versions 
         WHERE group_id=? AND user_id=?
         ORDER BY version_number ASC
@@ -361,12 +449,34 @@ def get_group_details(group_id):
             file_size = os.path.getsize(row['file_path'])
         
         ext = os.path.splitext(row['filename'])[1].upper().lstrip('.') or 'TXT'
+        ai_prob_val = float(row['ai_probability']) if ('ai_probability' in row.keys() and row['ai_probability'] is not None) else 0.0
+        ai_cls_val = row['ai_classification'] if ('ai_classification' in row.keys() and row['ai_classification']) else "Inconclusive"
+        
+        ai_analysis_dict = None
+        if 'ai_details' in row.keys() and row['ai_details']:
+            try:
+                ai_analysis_dict = json.loads(row['ai_details'])
+            except Exception:
+                pass
+        if not ai_analysis_dict:
+            ai_analysis_dict = {
+                "valid": True,
+                "ai_probability": ai_prob_val,
+                "human_probability": round(100.0 - ai_prob_val, 1),
+                "classification": ai_cls_val,
+                "confidence": "Moderate",
+                "assessment_detail": "Evaluated based on neural sequence probability distributions."
+            }
+
         versions.append({
             "id": row['id'],
             "version_number": row['version_number'],
             "filename": row['filename'],
             "file_type": ext,
             "file_size": file_size,
+            "ai_probability": ai_prob_val,
+            "ai_classification": ai_cls_val,
+            "ai_analysis": ai_analysis_dict,
             "created_at": row['created_at']
         })
 
@@ -384,7 +494,14 @@ def get_group_details(group_id):
     ''', (group_id, user_id))
 
     comparisons = []
+    seen_pairs = set()
     for row in c.fetchall():
+        p1 = row['prev_version_id']
+        p2 = row['new_version_id']
+        pair_key = (min(p1, p2), max(p1, p2))
+        if pair_key in seen_pairs:
+            continue
+        seen_pairs.add(pair_key)
         comparisons.append({
             "id": row['id'],
             "prev_version_id": row['prev_version_id'],
@@ -393,6 +510,10 @@ def get_group_details(group_id):
             "v1_name": row['v1_name'],
             "v2_num": row['v2_num'],
             "v2_name": row['v2_name'],
+            "prev_version_number": row['v1_num'],
+            "prev_filename": row['v1_name'],
+            "new_version_number": row['v2_num'],
+            "new_filename": row['v2_name'],
             "version_similarity": row['version_similarity'],
             "matching_percentage": row['matching_percentage'],
             "created_at": row['created_at']
@@ -488,11 +609,24 @@ def upload_new_version(group_id):
     file.seek(0)
     file.save(permanent_file_path)
 
+    # Compute AI content detection for new version
+    new_ai_prob = 0.0
+    new_ai_class = "Inconclusive"
+    new_ai_details_json = None
+    try:
+        new_ai = AIContentDetector.get_instance().detect(extracted_text)
+        if new_ai and new_ai.get('valid'):
+            new_ai_prob = float(new_ai.get('ai_probability', 0.0))
+            new_ai_class = new_ai.get('classification', 'Inconclusive')
+            new_ai_details_json = json.dumps(new_ai)
+    except Exception as e:
+        print(f"Version {next_ver} AI detection notice: {e}")
+
     c.execute('''
         INSERT INTO private_document_versions 
-        (group_id, user_id, version_number, filename, file_path, extracted_text)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (group_id, user_id, next_ver, orig_filename, permanent_file_path, extracted_text))
+        (group_id, user_id, version_number, filename, file_path, extracted_text, ai_probability, ai_classification, ai_details)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (group_id, user_id, next_ver, orig_filename, permanent_file_path, extracted_text, new_ai_prob, new_ai_class, new_ai_details_json))
     new_version_id = c.lastrowid
     conn.commit()
 
@@ -516,20 +650,46 @@ def upload_new_version(group_id):
                     v2_name=f"Version {next_ver}"
                 )
 
+                # Upsert comparison: update if pair already compared, otherwise insert
                 c.execute('''
-                    INSERT INTO version_comparisons 
-                    (user_id, group_id, prev_version_id, new_version_id, version_similarity, matching_percentage, statistics, detailed_matches)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    user_id, group_id, base_ver['id'], new_version_id,
-                    comp_result['version_similarity'],
-                    comp_result['matching_percentage'],
-                    json.dumps(comp_result['statistics']),
-                    json.dumps(comp_result['detailed_comparison'])
-                ))
-                comp_id = c.lastrowid
+                    SELECT id FROM version_comparisons
+                    WHERE group_id=? AND user_id=?
+                      AND ((prev_version_id=? AND new_version_id=?) OR (prev_version_id=? AND new_version_id=?))
+                    ORDER BY id DESC LIMIT 1
+                ''', (group_id, user_id, base_ver['id'], new_version_id, new_version_id, base_ver['id']))
+                existing_comp = c.fetchone()
 
-                # Pre-generate PDF report
+                if existing_comp:
+                    comp_id = existing_comp['id']
+                    c.execute('''
+                        UPDATE version_comparisons 
+                        SET prev_version_id=?, new_version_id=?, version_similarity=?, matching_percentage=?,
+                            statistics=?, detailed_matches=?, created_at=CURRENT_TIMESTAMP
+                        WHERE id=?
+                    ''', (
+                        base_ver['id'], new_version_id,
+                        comp_result['version_similarity'],
+                        comp_result['matching_percentage'],
+                        json.dumps(comp_result['statistics']),
+                        json.dumps(comp_result['detailed_comparison']),
+                        comp_id
+                    ))
+                else:
+                    c.execute('''
+                        INSERT INTO version_comparisons 
+                        (user_id, group_id, prev_version_id, new_version_id, version_similarity, matching_percentage, statistics, detailed_matches, ai_analysis)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        user_id, group_id, base_ver['id'], new_version_id,
+                        comp_result['version_similarity'],
+                        comp_result['matching_percentage'],
+                        json.dumps(comp_result['statistics']),
+                        json.dumps(comp_result['detailed_comparison']),
+                        None
+                    ))
+                    comp_id = c.lastrowid
+
+                # Pre-generate PDF report (including AI authorship drift audit)
                 pdf_buf = report_generator.generate_report(
                     group_name=group['document_name'],
                     v1_info=v1_info,
@@ -557,6 +717,7 @@ def upload_new_version(group_id):
                     "statistics": comp_result['statistics'],
                     "detailed_matches": comp_result['detailed_comparison'],
                     "detailed_comparison": comp_result['detailed_comparison'],
+                    "ai_analysis": None,
                     "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
         except Exception as e:
@@ -570,6 +731,8 @@ def upload_new_version(group_id):
         "version_id": new_version_id,
         "version_number": next_ver,
         "filename": orig_filename,
+        "ai_probability": new_ai_prob,
+        "ai_classification": new_ai_class,
         "comparison": comparison_response
     })
 
@@ -639,20 +802,46 @@ def compare_arbitrary_versions():
         v2_name=f"Version {r2['version_number']}"
     )
 
+    # Upsert comparison: update if pair already compared, otherwise insert
     c.execute('''
-        INSERT INTO version_comparisons 
-        (user_id, group_id, prev_version_id, new_version_id, version_similarity, matching_percentage, statistics, detailed_matches)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        user_id, group_id, r1['id'], r2['id'],
-        comp_result['version_similarity'],
-        comp_result['matching_percentage'],
-        json.dumps(comp_result['statistics']),
-        json.dumps(comp_result['detailed_comparison'])
-    ))
-    comp_id = c.lastrowid
+        SELECT id FROM version_comparisons
+        WHERE group_id=? AND user_id=?
+          AND ((prev_version_id=? AND new_version_id=?) OR (prev_version_id=? AND new_version_id=?))
+        ORDER BY id DESC LIMIT 1
+    ''', (group_id, user_id, r1['id'], r2['id'], r2['id'], r1['id']))
+    existing_row = c.fetchone()
 
-    # Pre-generate PDF report
+    if existing_row:
+        comp_id = existing_row['id']
+        c.execute('''
+            UPDATE version_comparisons 
+            SET prev_version_id=?, new_version_id=?, version_similarity=?, matching_percentage=?,
+                statistics=?, detailed_matches=?, created_at=CURRENT_TIMESTAMP
+            WHERE id=?
+        ''', (
+            r1['id'], r2['id'],
+            comp_result['version_similarity'],
+            comp_result['matching_percentage'],
+            json.dumps(comp_result['statistics']),
+            json.dumps(comp_result['detailed_comparison']),
+            comp_id
+        ))
+    else:
+        c.execute('''
+            INSERT INTO version_comparisons 
+            (user_id, group_id, prev_version_id, new_version_id, version_similarity, matching_percentage, statistics, detailed_matches, ai_analysis)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            user_id, group_id, r1['id'], r2['id'],
+            comp_result['version_similarity'],
+            comp_result['matching_percentage'],
+            json.dumps(comp_result['statistics']),
+            json.dumps(comp_result['detailed_comparison']),
+            None
+        ))
+        comp_id = c.lastrowid
+
+    # Pre-generate PDF report (including AI authorship drift audit)
     pdf_buf = report_generator.generate_report(
         group_name=group_name,
         v1_info=v1_info,
@@ -683,6 +872,7 @@ def compare_arbitrary_versions():
         "statistics": comp_result['statistics'],
         "detailed_matches": comp_result['detailed_comparison'],
         "detailed_comparison": comp_result['detailed_comparison'],
+        "ai_analysis": None,
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
@@ -700,7 +890,8 @@ def compare_arbitrary_versions():
         "matching_percentage": comp_result['matching_percentage'],
         "statistics": comp_result['statistics'],
         "detailed_matches": comp_result['detailed_comparison'],
-        "detailed_comparison": comp_result['detailed_comparison']
+        "detailed_comparison": comp_result['detailed_comparison'],
+        "ai_analysis": None
     })
 
 @version_bp.route('/vc/comparisons/<int:comparison_id>', methods=['GET'])
@@ -729,6 +920,15 @@ def get_comparison_result(comparison_id):
 
     stats = json.loads(comp['statistics']) if comp['statistics'] else {}
     detailed = json.loads(comp['detailed_matches']) if comp['detailed_matches'] else []
+    
+    ai_analysis_val = None
+    if 'ai_analysis' in comp.keys() and comp['ai_analysis']:
+        try:
+            ai_analysis_val = json.loads(comp['ai_analysis'])
+        except Exception:
+            pass
+    if not ai_analysis_val and stats.get('ai_analysis'):
+        ai_analysis_val = stats['ai_analysis']
 
     v1_info = {"id": comp['prev_version_id'], "version_number": comp['v1_num'], "filename": comp['v1_name']}
     v2_info = {"id": comp['new_version_id'], "version_number": comp['v2_num'], "filename": comp['v2_name']}
@@ -747,7 +947,8 @@ def get_comparison_result(comparison_id):
         "matching_percentage": comp['matching_percentage'],
         "statistics": stats,
         "detailed_matches": detailed,
-        "detailed_comparison": detailed
+        "detailed_comparison": detailed,
+        "ai_analysis": ai_analysis_val
     }
 
     return jsonify({
@@ -764,7 +965,8 @@ def get_comparison_result(comparison_id):
         "matching_percentage": comp['matching_percentage'],
         "statistics": stats,
         "detailed_matches": detailed,
-        "detailed_comparison": detailed
+        "detailed_comparison": detailed,
+        "ai_analysis": ai_analysis_val
     })
 
 @version_bp.route('/vc/comparisons/<int:comparison_id>/report', methods=['GET'])
@@ -881,3 +1083,106 @@ def delete_version(version_id):
     conn.close()
 
     return jsonify({"success": True, "message": "Version deleted successfully."})
+
+@version_bp.route('/vc/versions/<int:version_id>/ai-analysis', methods=['GET'])
+@login_required
+def get_version_ai_analysis(version_id):
+    user_id = session['user_id']
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''
+        SELECT v.id, v.version_number, v.filename, v.extracted_text, v.ai_probability, 
+               v.ai_classification, v.ai_details, g.document_name, v.created_at
+        FROM private_document_versions v
+        JOIN private_document_groups g ON v.group_id = g.id
+        WHERE v.id=? AND v.user_id=?
+    ''', (version_id, user_id))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Version snapshot not found or unauthorized."}), 404
+
+    ai_data = None
+    if 'ai_details' in row.keys() and row['ai_details']:
+        try:
+            ai_data = json.loads(row['ai_details'])
+        except Exception:
+            pass
+
+    if not ai_data:
+        try:
+            detector = AIContentDetector.get_instance()
+            ai_data = detector.detect(row['extracted_text'])
+            c.execute('''
+                UPDATE private_document_versions 
+                SET ai_probability=?, ai_classification=?, ai_details=?
+                WHERE id=?
+            ''', (ai_data.get('ai_probability', 0.0), ai_data.get('classification', 'Inconclusive'), json.dumps(ai_data), version_id))
+            conn.commit()
+        except Exception as e:
+            conn.close()
+            return jsonify({"error": f"Failed to analyze version text: {str(e)}"}), 500
+
+    conn.close()
+    return jsonify({
+        "success": True,
+        "version_id": row['id'],
+        "version_number": row['version_number'],
+        "filename": row['filename'],
+        "document_name": row['document_name'],
+        "created_at": row['created_at'],
+        "ai_analysis": ai_data
+    })
+
+@version_bp.route('/vc/versions/<int:version_id>/ai-report', methods=['GET'])
+@login_required
+def download_version_ai_report(version_id):
+    user_id = session['user_id']
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''
+        SELECT v.id, v.version_number, v.filename, v.file_path, v.extracted_text, 
+               v.ai_probability, v.ai_classification, v.ai_details, g.document_name
+        FROM private_document_versions v
+        JOIN private_document_groups g ON v.group_id = g.id
+        WHERE v.id=? AND v.user_id=?
+    ''', (version_id, user_id))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return jsonify({"error": "Version snapshot not found or unauthorized."}), 404
+
+    text = row['extracted_text'] or ""
+    ai_data = None
+    if 'ai_details' in row.keys() and row['ai_details']:
+        try:
+            ai_data = json.loads(row['ai_details'])
+        except Exception:
+            pass
+    if not ai_data:
+        detector = AIContentDetector.get_instance()
+        ai_data = detector.detect(text)
+
+    results_payload = {
+        "filename": row['filename'],
+        "version_number": row['version_number'],
+        "similarity_score": 0.0,
+        "risk_level": "Version Snapshot",
+        "ai_analysis": ai_data,
+        "top_sources": [],
+        "sentence_analysis": [],
+        "text_length": len(text)
+    }
+    report_id = f"VC-V{row['version_number']}-{row['id']}"
+    pdf_buffer = single_report_generator.generate_single_report(
+        text, results_payload,
+        filename=row['filename'],
+        report_id=report_id,
+        file_type=os.path.splitext(row['filename'])[1].upper().lstrip('.') or 'PDF'
+    )
+    return send_file(
+        pdf_buffer,
+        as_attachment=True,
+        download_name=f"AI_Audit_Version_{row['version_number']}_{row['filename']}.pdf",
+        mimetype='application/pdf'
+    )
