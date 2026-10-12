@@ -1926,8 +1926,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const vcStatRemoved = document.getElementById('vcStatRemoved');
     const vcStatRemovedPct = document.getElementById('vcStatRemovedPct');
 
-    const btnDownloadVcReportCta = document.getElementById('btnDownloadVcReportCta');
-
     // Modals
     const modalNewGroup = document.getElementById('modalNewGroup');
     const btnCloseNewGroupModal = document.getElementById('btnCloseNewGroupModal');
@@ -2788,15 +2786,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (vcStatRemovedPct) vcStatRemovedPct.textContent = `${(st.removed_pct || 0).toFixed(1)}% of baseline`;
 
         vcComparisonContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    // Download PDF Report from CTA card
-    if (btnDownloadVcReportCta) {
-        btnDownloadVcReportCta.addEventListener('click', () => {
-            if (vcCurrentComparison && vcCurrentComparison.id) {
-                window.open(`/api/vc/comparisons/${vcCurrentComparison.id}/report`, '_blank');
-            }
-        });
     }
 
     // Back Buttons
