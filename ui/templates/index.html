@@ -730,6 +730,64 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- ANALYSIS HISTORY (Single Document Audits) -->
+                    <div class="history-section">
+                        <div class="history-header">
+                            <div class="history-title-group">
+                                <div class="history-icon-badge">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="section-title">Recent Document Audits</h3>
+                                    <p class="history-subtitle">Search, filter, re-inspect, or download previously analyzed
+                                        document audits</p>
+                                </div>
+                            </div>
+
+                            <div class="history-count-pill" id="historyCountBadge">0 Audits</div>
+                        </div>
+
+                        <!-- HISTORY CONTROLS TOOLBAR -->
+                        <div class="history-toolbar">
+                            <div class="history-search-wrapper">
+                                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg>
+                                <input type="text" id="historySearchInput"
+                                    placeholder="Search audits by file name, text, or ID..." autocomplete="off">
+                                <button type="button" id="historyClearSearch" class="search-clear-btn"
+                                    style="display: none;">×</button>
+                            </div>
+
+                            <div class="history-filter-group">
+                                <button type="button" class="history-filter-btn active" data-filter="all">All
+                                    Audits</button>
+                                <button type="button" class="history-filter-btn" data-filter="clean">Clean
+                                    (&lt;40%)</button>
+                                <button type="button" class="history-filter-btn" data-filter="moderate">Moderate
+                                    (40-69%)</button>
+                                <button type="button" class="history-filter-btn" data-filter="critical">High Risk
+                                    (≥70%)</button>
+                            </div>
+                        </div>
+
+                        <!-- AUDITS GRID -->
+                        <div id="historyList" class="history-grid"></div>
+
+                        <!-- PAGINATION CONTROLS -->
+                        <div class="history-pagination" id="historyPagination" style="display: none;">
+                            <button type="button" id="historyPrevBtn" class="btn-page-nav" disabled>&larr; Previous</button>
+                            <span id="historyPageIndicator" class="page-indicator">Page 1 of 1</span>
+                            <button type="button" id="historyNextBtn" class="btn-page-nav">Next &rarr;</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- MULTI ANALYSIS RESULTS -->
@@ -850,8 +908,24 @@
                         </div>
                     </div>
 
+                    <div class="matrix-section">
+                        <div class="section-title-wrap">
+                            <h3 class="section-title">Similarity Matrix</h3>
+                            <span class="section-badge">Corpus Cross-Correlation</span>
+                        </div>
+                        <div class="matrix-container" id="matrixContainer"></div>
+                    </div>
+
+                    <div class="pairwise-section">
+                        <div class="section-title-wrap">
+                            <h3 class="section-title">Pairwise Alignments</h3>
+                            <span class="section-badge">Sentence Matches</span>
+                        </div>
+                        <div id="pairwiseList" class="pairwise-results"></div>
+                    </div>
+
                     <!-- MULTI-DOCUMENT AI CONTENT & AUTHORSHIP AUDIT SECTION -->
-                    <div id="multiAiSection" class="card multi-ai-card" style="margin-bottom: 2rem;">
+                    <div id="multiAiSection" class="card multi-ai-card" style="margin-top: 2rem;">
                         <div class="ai-card-header">
                             <div class="ai-card-title-group">
                                 <div class="ai-card-icon-badge">
@@ -889,80 +963,6 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-
-                    <div class="matrix-section">
-                        <div class="section-title-wrap">
-                            <h3 class="section-title">Similarity Matrix</h3>
-                            <span class="section-badge">Corpus Cross-Correlation</span>
-                        </div>
-                        <div class="matrix-container" id="matrixContainer"></div>
-                    </div>
-
-                    <div class="pairwise-section">
-                        <div class="section-title-wrap">
-                            <h3 class="section-title">Pairwise Alignments</h3>
-                            <span class="section-badge">Sentence Matches</span>
-                        </div>
-                        <div id="pairwiseList" class="pairwise-results"></div>
-                    </div>
-                </div>
-
-                <!-- ANALYSIS HISTORY -->
-                <div class="history-section">
-                    <div class="history-header">
-                        <div class="history-title-group">
-                            <div class="history-icon-badge">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <polyline points="12 6 12 12 16 14" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="section-title">Recent Document Audits</h3>
-                                <p class="history-subtitle">Search, filter, re-inspect, or download previously analyzed
-                                    document audits</p>
-                            </div>
-                        </div>
-
-                        <div class="history-count-pill" id="historyCountBadge">0 Audits</div>
-                    </div>
-
-                    <!-- HISTORY CONTROLS TOOLBAR -->
-                    <div class="history-toolbar">
-                        <div class="history-search-wrapper">
-                            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8" />
-                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                            </svg>
-                            <input type="text" id="historySearchInput"
-                                placeholder="Search audits by file name, text, or ID..." autocomplete="off">
-                            <button type="button" id="historyClearSearch" class="search-clear-btn"
-                                style="display: none;">×</button>
-                        </div>
-
-                        <div class="history-filter-group">
-                            <button type="button" class="history-filter-btn active" data-filter="all">All
-                                Audits</button>
-                            <button type="button" class="history-filter-btn" data-filter="clean">Clean
-                                (&lt;40%)</button>
-                            <button type="button" class="history-filter-btn" data-filter="moderate">Moderate
-                                (40-69%)</button>
-                            <button type="button" class="history-filter-btn" data-filter="critical">High Risk
-                                (≥70%)</button>
-                        </div>
-                    </div>
-
-                    <!-- AUDITS GRID -->
-                    <div id="historyList" class="history-grid"></div>
-
-                    <!-- PAGINATION CONTROLS -->
-                    <div class="history-pagination" id="historyPagination" style="display: none;">
-                        <button type="button" id="historyPrevBtn" class="btn-page-nav" disabled>&larr; Previous</button>
-                        <span id="historyPageIndicator" class="page-indicator">Page 1 of 1</span>
-                        <button type="button" id="historyNextBtn" class="btn-page-nav">Next &rarr;</button>
                     </div>
                 </div>
             </section>
