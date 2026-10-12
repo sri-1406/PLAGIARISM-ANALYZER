@@ -437,6 +437,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (errorDiv) errorDiv.style.display = 'none';
 
         if (mode === 'home') {
+            const vcGrpDetail = document.getElementById('vcGroupDetailContainer');
+            const vcCompContainer = document.getElementById('vcComparisonContainer');
+            const vcGrpsContainer = document.getElementById('vcGroupsContainer');
+            if (vcGrpDetail) vcGrpDetail.style.display = 'none';
+            if (vcCompContainer) vcCompContainer.style.display = 'none';
+            if (vcGrpsContainer) vcGrpsContainer.style.display = 'block';
+
             if (homeSection) homeSection.style.display = 'flex';
             if (heroSection) heroSection.style.display = 'none';
             if (workspaceCard) workspaceCard.style.display = 'none';
@@ -473,6 +480,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (heroSubline) heroSubline.textContent = currentHeading.sub;
 
         if (mode === 'version') {
+            const vcGrpDetail = document.getElementById('vcGroupDetailContainer');
+            const vcCompContainer = document.getElementById('vcComparisonContainer');
+            const vcGrpsContainer = document.getElementById('vcGroupsContainer');
+            if (vcGrpDetail) vcGrpDetail.style.display = 'none';
+            if (vcCompContainer) vcCompContainer.style.display = 'none';
+            if (vcGrpsContainer) vcGrpsContainer.style.display = 'block';
+
             if (workspaceCard) workspaceCard.style.display = 'none';
             if (resultsDiv) resultsDiv.style.display = 'none';
             if (versionControlSection) versionControlSection.style.display = 'flex';
@@ -1965,6 +1979,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentMode === 'version') {
                     if (vcAuthGate) vcAuthGate.style.display = 'none';
                     if (vcDashboard) vcDashboard.style.display = 'block';
+                    if (vcGroupDetailContainer) vcGroupDetailContainer.style.display = 'none';
+                    if (vcComparisonContainer) vcComparisonContainer.style.display = 'none';
+                    if (vcGroupsContainer) vcGroupsContainer.style.display = 'block';
+                    vcCurrentGroup = null;
+                    vcCurrentComparison = null;
                     loadVcGroups();
                 }
             } else {
