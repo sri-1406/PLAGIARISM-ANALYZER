@@ -385,7 +385,7 @@ class ReportGenerator:
             ai_color = '#dc2626' if ai_prob >= 70 else ('#ea580c' if ai_prob >= 40 else '#16a34a')
             ai_content = [
                 Paragraph(
-                    f"<b>NEURAL AI CONTENT &amp; AUTHORSHIP AUDIT (RoBERTa &bull; HC3 Fine-Tuned Model)</b><br/>"
+                    f"<b>NEURAL AI GENERATION CHECK (RoBERTa &bull; HC3 Fine-Tuned Model)</b><br/>"
                     f"AI Generation Likelihood: <b><font color='{ai_color}'>{ai_prob:.1f}%</font></b> &nbsp;|&nbsp; "
                     f"Human Authorship Likelihood: <b><font color='#16a34a'>{human_prob:.1f}%</font></b> &nbsp;|&nbsp; "
                     f"Status: <b>{ai_cls}</b> &nbsp;|&nbsp; Confidence: <b>{ai_conf}</b><br/>"
@@ -999,7 +999,7 @@ class ReportGenerator:
         # ==================== SECTION 4: AI CONTENT AUDIT ====================
         sec_num = 4
         if ai_analysis and ai_analysis.get('documents'):
-            story.append(Paragraph(f"{sec_num}. Multi-Document AI Content & Authorship Audit", self.section_heading_style))
+            story.append(Paragraph(f"{sec_num}. Multi-Document AI Generation Check", self.section_heading_style))
             story.append(Paragraph("Neural language model classification (RoBERTa fine-tuned classifier &bull; HC3 benchmark) evaluating machine-generated likelihood across all analyzed corpus documents.", self.section_desc_style))
             
             ai_tbl_data = [
