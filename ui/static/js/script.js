@@ -459,7 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 sub: 'Upload or paste your text to analyze plagiarism and originality with instant similarity scoring, sentence matching, and downloadable audit reports.'
             },
             multi: {
-                title: 'Multi-Document Plagiarism Analysis',
+                title: 'Multi-Document Comparison',
                 sub: 'Compare multiple documents simultaneously to identify similarity matrices, cross-file sentence alignments, and cluster overlaps.'
             },
             version: {
