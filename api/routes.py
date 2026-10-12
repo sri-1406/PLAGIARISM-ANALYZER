@@ -322,14 +322,15 @@ def download_report_direct(report_id):
         try:
             conn = sqlite3.connect(DATABASE_PATH)
             cursor = conn.cursor()
-            cursor.execute('SELECT text, results FROM reports WHERE id=?', (report_id,))
+            cursor.execute('SELECT text, results, filename FROM reports WHERE id=?', (report_id,))
             row = cursor.fetchone()
             conn.close()
             if row:
-                text_content, results_json = row
+                text_content, results_json, filename_from_db = row
                 results_data = json.loads(results_json) if results_json else {}
                 pdf_buffer = report_gen.generate_single_report(
                     text_content, results_data,
+                    filename=filename_from_db,
                     report_id=report_id
                 )
                 with open(report_path, 'wb') as f:
