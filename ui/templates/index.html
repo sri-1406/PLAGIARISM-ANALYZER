@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" class="single-page-mode">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plagiarism Analyzer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=41.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=44.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -13,7 +13,7 @@
         rel="stylesheet">
 </head>
 
-<body>
+<body class="single-page-mode">
     <div class="app-wrapper">
         <!-- FLOATING THEME TOGGLE (CLEAN CORNER BUTTON) -->
         <button id="themeToggle" class="floating-theme-toggle" title="Toggle Theme" aria-label="Toggle Dark and Light Mode">
@@ -67,18 +67,19 @@
                             <span>AI-POWERED DOCUMENT ANALYSIS</span>
                         </div>
                         <h1 class="home-title">
+                            <span class="home-title-welcome">Welcome to Our</span>
                             <span class="gradient-text-hero">Plagiarism Analyzer</span>
                         </h1>
                         <p class="home-tagline">
                             Advanced similarity detection, multi-document comparison, and version tracking.
                         </p>
                         <div class="home-hero-actions">
-                            <a href="#homeFeatures" class="btn-hero-secondary" id="heroLearnMoreBtn">
+                            <button type="button" class="btn-hero-secondary btn-explore-features" id="heroLearnMoreBtn">
                                 <span>Explore Features</span>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="6 9 12 15 18 9" />
                                 </svg>
-                            </a>
+                            </button>
                         </div>
                     </div>
 
@@ -157,11 +158,45 @@
                                 </div>
                             </div>
                         </div>
+                </div>
+            </section>
+
+            <!-- FEATURES PAGE SECTION -->
+            <section id="featuresSection" class="features-page-view" style="display: none;">
+                <!-- AMBIENT LAYERED BACKGROUND GLOW & TECHNICAL PATTERN -->
+                <div class="home-bg-ambient" aria-hidden="true">
+                    <div class="ambient-glow glow-hero-purple"></div>
+                    <div class="ambient-glow glow-hero-cyan"></div>
+                    <div class="ambient-glow glow-features-center"></div>
+                    <div class="ambient-orb orb-1"></div>
+                    <div class="ambient-orb orb-2"></div>
+                    <div class="ambient-orb orb-3"></div>
+                    <div class="ambient-mesh-grid"></div>
+                    <div class="ambient-particles">
+                        <span class="particle p1"></span>
+                        <span class="particle p2"></span>
+                        <span class="particle p3"></span>
+                        <span class="particle p4"></span>
+                        <span class="particle p5"></span>
+                    </div>
+                </div>
+
+                <!-- FEATURES TOP NAVIGATION BAR -->
+                <div class="features-top-bar">
+                    <button type="button" class="btn-back-home" id="featuresBackHomeBtn" title="Back to Home">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                        <span>Back to Home</span>
+                    </button>
+                    <div class="features-page-badge">
+                        <span class="badge-dot pulse"></span>
+                        <span>CORE WORKFLOW SUITE</span>
                     </div>
                 </div>
 
                 <!-- 2. THREE PREMIUM FEATURE CARDS (PRIMARY FOCUS) -->
-                <section class="home-features-section" id="homeFeatures">
+                <div class="home-features-section" id="homeFeatures">
                     <div class="section-heading-center">
                         <span class="home-section-tag">CORE WORKFLOWS</span>
                         <h2 class="home-section-title">Everything You Need to Work With Documents</h2>
@@ -291,22 +326,25 @@
                             </button>
                         </div>
                     </div>
-                </section>
-
-
-
-
+                </div>
             </section>
 
             <!-- MODE HERO INTRODUCTION -->
             <section class="hero-section" id="heroSection" style="display: none;">
                 <!-- WORKSPACE TOP HEADER BAR WITH BACK TO HOME -->
                 <div class="workspace-top-bar">
-                    <button type="button" class="btn-back-home" id="workspaceBackHomeBtn" title="Return to Home">
+                    <button type="button" class="btn-back-home" id="workspaceBackFeaturesBtn" title="Back to Features">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="15 18 9 12 15 6"/>
                         </svg>
-                        <span>Back to Home</span>
+                        <span>Back to Features</span>
+                    </button>
+                    <button type="button" class="btn-back-home btn-back-to-home" id="workspaceBackHomeBtn" title="Return to Home">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        <span>Home</span>
                     </button>
                 </div>
 
@@ -318,7 +356,7 @@
             </section>
 
             <!-- WORKSPACE INPUT CARD -->
-            <section id="workspaceCard" class="card workspace-card">
+            <section id="workspaceCard" class="card workspace-card" style="display: none;">
                 <!-- SINGLE DOCUMENT WORKSPACE -->
                 <div id="singleInputSection">
                     <!-- MAIN EXTRACTED TEXT / INPUT AREA -->
@@ -1520,7 +1558,7 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}?v=39.0"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}?v=43.0"></script>
 </body>
 
 </html>

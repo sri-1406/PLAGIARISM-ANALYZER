@@ -23,7 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const homeModeBtn = document.getElementById('homeMode');
     const brandHomeBtn = document.getElementById('brandHomeBtn');
     const homeSection = document.getElementById('homeSection');
+    const featuresSection = document.getElementById('featuresSection');
     const heroSection = document.getElementById('heroSection');
+    const featuresBackHomeBtn = document.getElementById('featuresBackHomeBtn');
+    const workspaceBackFeaturesBtn = document.getElementById('workspaceBackFeaturesBtn');
+    const workspaceBackHomeBtn = document.getElementById('workspaceBackHomeBtn');
     const singleModeBtn = document.getElementById('singleMode');
     const multiModeBtn = document.getElementById('multiMode');
     const versionModeBtn = document.getElementById('versionMode');
@@ -462,6 +466,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (errorDiv) errorDiv.style.display = 'none';
 
+        if (mode === 'home' || mode === 'features') {
+            document.body.classList.add('single-page-mode');
+            document.documentElement.classList.add('single-page-mode');
+        } else {
+            document.body.classList.remove('single-page-mode');
+            document.documentElement.classList.remove('single-page-mode');
+        }
+
         if (mode === 'home') {
             resetSingleWorkspace();
             resetMultiWorkspace();
@@ -474,6 +486,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (vcGrpsContainer) vcGrpsContainer.style.display = 'block';
 
             if (homeSection) homeSection.style.display = 'flex';
+            if (featuresSection) featuresSection.style.display = 'none';
+            if (heroSection) heroSection.style.display = 'none';
+            if (workspaceCard) workspaceCard.style.display = 'none';
+            if (versionControlSection) versionControlSection.style.display = 'none';
+            if (resultsDiv) resultsDiv.style.display = 'none';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        if (mode === 'features') {
+            resetSingleWorkspace();
+            resetMultiWorkspace();
+
+            const vcGrpDetail = document.getElementById('vcGroupDetailContainer');
+            const vcCompContainer = document.getElementById('vcComparisonContainer');
+            const vcGrpsContainer = document.getElementById('vcGroupsContainer');
+            if (vcGrpDetail) vcGrpDetail.style.display = 'none';
+            if (vcCompContainer) vcCompContainer.style.display = 'none';
+            if (vcGrpsContainer) vcGrpsContainer.style.display = 'block';
+
+            if (homeSection) homeSection.style.display = 'none';
+            if (featuresSection) featuresSection.style.display = 'flex';
             if (heroSection) heroSection.style.display = 'none';
             if (workspaceCard) workspaceCard.style.display = 'none';
             if (versionControlSection) versionControlSection.style.display = 'none';
@@ -483,6 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (homeSection) homeSection.style.display = 'none';
+        if (featuresSection) featuresSection.style.display = 'none';
         if (heroSection) heroSection.style.display = 'block';
 
         // Dynamically update mode hero banner headings
@@ -535,10 +570,83 @@ document.addEventListener('DOMContentLoaded', () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Workspace Back to Home Button
-    const workspaceBackHomeBtn = document.getElementById('workspaceBackHomeBtn');
+    // Smooth Animated Page Transitions
+    let isTransitioning = false;
+
+    function transitionHomeToFeatures() {
+        if (isTransitioning) return;
+        if (!homeSection || !featuresSection) {
+            activateMode('features');
+            return;
+        }
+
+        isTransitioning = true;
+        homeSection.classList.remove('anim-fade-slide-up-enter', 'anim-fade-slide-down-enter');
+        homeSection.classList.add('anim-fade-slide-up-exit');
+
+        setTimeout(() => {
+            homeSection.style.display = 'none';
+            homeSection.classList.remove('anim-fade-slide-up-exit');
+
+            featuresSection.style.display = 'flex';
+            featuresSection.classList.remove('anim-fade-slide-down-exit', 'anim-fade-slide-up-exit');
+            featuresSection.classList.add('anim-fade-slide-up-enter');
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            currentMode = 'features';
+            document.body.classList.add('single-page-mode');
+            document.documentElement.classList.add('single-page-mode');
+
+            setTimeout(() => {
+                featuresSection.classList.remove('anim-fade-slide-up-enter');
+                isTransitioning = false;
+            }, 550);
+        }, 340);
+    }
+
+    function transitionFeaturesToHome() {
+        if (isTransitioning) return;
+        if (!homeSection || !featuresSection) {
+            activateMode('home');
+            return;
+        }
+
+        isTransitioning = true;
+        featuresSection.classList.remove('anim-fade-slide-up-enter', 'anim-fade-slide-down-enter');
+        featuresSection.classList.add('anim-fade-slide-down-exit');
+
+        setTimeout(() => {
+            featuresSection.style.display = 'none';
+            featuresSection.classList.remove('anim-fade-slide-down-exit');
+
+            homeSection.style.display = 'flex';
+            homeSection.classList.remove('anim-fade-slide-up-exit', 'anim-fade-slide-down-exit');
+            homeSection.classList.add('anim-fade-slide-down-enter');
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            currentMode = 'home';
+            document.body.classList.add('single-page-mode');
+            document.documentElement.classList.add('single-page-mode');
+
+            setTimeout(() => {
+                homeSection.classList.remove('anim-fade-slide-down-enter');
+                isTransitioning = false;
+            }, 550);
+        }, 300);
+    }
+
+    // Workspace & Features Navigation Buttons
     if (workspaceBackHomeBtn) {
         workspaceBackHomeBtn.addEventListener('click', () => activateMode('home'));
+    }
+
+    if (workspaceBackFeaturesBtn) {
+        workspaceBackFeaturesBtn.addEventListener('click', () => activateMode('features'));
+    }
+
+    if (featuresBackHomeBtn) {
+        featuresBackHomeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            transitionFeaturesToHome();
+        });
     }
 
     const navBackHomeBtn = document.getElementById('navBackHomeBtn');
@@ -596,8 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (heroLearnMoreBtn) {
         heroLearnMoreBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            const targetEl = document.getElementById('homeFeatures');
-            if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth' });
+            transitionHomeToFeatures();
         });
     }
     if (btnPreviewLaunch) btnPreviewLaunch.addEventListener('click', () => activateMode('single'));
