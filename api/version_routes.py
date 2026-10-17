@@ -993,30 +993,28 @@ def download_comparison_report(comparison_id):
     if not comp:
         return jsonify({"error": "Comparison report not found or unauthorized."}), 404
 
-    rep_path = comp['report_path']
-    if not rep_path or not os.path.exists(rep_path):
-        # Regenerate dynamically
-        v1_info = {"id": comp['prev_version_id'], "version_number": comp['v1_num'], "filename": comp['v1_name']}
-        v2_info = {"id": comp['new_version_id'], "version_number": comp['v2_num'], "filename": comp['v2_name']}
-        
-        comp_data = {
-            "version_similarity": comp['version_similarity'],
-            "matching_percentage": comp['matching_percentage'],
-            "statistics": json.loads(comp['statistics']) if comp['statistics'] else {},
-            "detailed_comparison": json.loads(comp['detailed_matches']) if comp['detailed_matches'] else []
-        }
-        
-        pdf_buf = report_generator.generate_report(
-            group_name=comp['document_name'],
-            v1_info=v1_info,
-            v2_info=v2_info,
-            comparison_data=comp_data,
-            user_name=session.get('user_name', 'Authorized User'),
-            report_id=comp['id']
-        )
-        rep_path = os.path.join(VC_REPORTS_DIR, f"report_vc_{comparison_id}.pdf")
-        with open(rep_path, 'wb') as rf:
-            rf.write(pdf_buf.getbuffer())
+    # Always regenerate dynamically from database so reports use latest clean formatting & sanitization
+    v1_info = {"id": comp['prev_version_id'], "version_number": comp['v1_num'], "filename": comp['v1_name']}
+    v2_info = {"id": comp['new_version_id'], "version_number": comp['v2_num'], "filename": comp['v2_name']}
+    
+    comp_data = {
+        "version_similarity": comp['version_similarity'],
+        "matching_percentage": comp['matching_percentage'],
+        "statistics": json.loads(comp['statistics']) if comp['statistics'] else {},
+        "detailed_comparison": json.loads(comp['detailed_matches']) if comp['detailed_matches'] else []
+    }
+    
+    pdf_buf = report_generator.generate_report(
+        group_name=comp['document_name'],
+        v1_info=v1_info,
+        v2_info=v2_info,
+        comparison_data=comp_data,
+        user_name=session.get('user_name', 'Authorized User'),
+        report_id=comp['id']
+    )
+    rep_path = os.path.join(VC_REPORTS_DIR, f"report_vc_{comparison_id}.pdf")
+    with open(rep_path, 'wb') as rf:
+        rf.write(pdf_buf.getbuffer())
 
     download_name = f"Version_Similarity_Report_V{comp['v1_num']}_vs_V{comp['v2_num']}.pdf"
     return send_file(

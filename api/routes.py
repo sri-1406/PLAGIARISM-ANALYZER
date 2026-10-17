@@ -298,6 +298,9 @@ def multi_check():
             human_count = sum(1 for d in ai_docs if d.get('classification') == 'Likely human-written')
             mixed_count = len(ai_docs) - ai_flagged_count - human_count
 
+            # Sort documents from low to high by AI Likelihood
+            ai_docs.sort(key=lambda x: float(x.get('ai_probability', 0.0)))
+
             results['ai_analysis'] = {
                 "documents": ai_docs,
                 "average_ai_probability": avg_ai,
@@ -317,26 +320,26 @@ def multi_check():
 def download_report_direct(report_id):
     report_path = os.path.join(REPORTS_DIR, f"report_{report_id}.pdf")
     
-    # If report file doesn't exist on disk, regenerate dynamically from database
-    if not os.path.exists(report_path):
-        try:
-            conn = sqlite3.connect(DATABASE_PATH)
-            cursor = conn.cursor()
-            cursor.execute('SELECT text, results, filename FROM reports WHERE id=?', (report_id,))
-            row = cursor.fetchone()
-            conn.close()
-            if row:
-                text_content, results_json, filename_from_db = row
-                results_data = json.loads(results_json) if results_json else {}
-                pdf_buffer = report_gen.generate_single_report(
-                    text_content, results_data,
-                    filename=filename_from_db,
-                    report_id=report_id
-                )
-                with open(report_path, 'wb') as f:
-                    f.write(pdf_buffer.getbuffer())
-        except Exception as e:
-            print(f"Error regenerating report {report_id}: {e}")
+    # Always generate/refresh dynamically from database so reports use latest clean formatting
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        cursor.execute('SELECT text, results, filename FROM reports WHERE id=?', (report_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            text_content, results_json, filename_from_db = row
+            results_data = json.loads(results_json) if results_json else {}
+            pdf_buffer = report_gen.generate_single_report(
+                text_content, results_data,
+                filename=filename_from_db,
+                report_id=report_id
+            )
+            with open(report_path, 'wb') as f:
+                f.write(pdf_buffer.getbuffer())
+    except Exception as e:
+        print(f"Error generating fresh report {report_id}: {e}")
+
 
     if not os.path.exists(report_path):
         return jsonify({"error": "Report file not found on server."}), 404

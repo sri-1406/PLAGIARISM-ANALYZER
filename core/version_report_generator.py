@@ -58,10 +58,13 @@ class VersionReportCanvas(canvas.Canvas):
         
         self.restoreState()
 
+from core.report_generator import sanitize_text_for_pdf
+
 def safe_p(text, style):
     if not text:
         return Paragraph("-", style)
-    escaped = html.escape(str(text))
+    sanitized = sanitize_text_for_pdf(str(text))
+    escaped = html.escape(sanitized)
     return Paragraph(escaped, style)
 
 class VersionReportGenerator:

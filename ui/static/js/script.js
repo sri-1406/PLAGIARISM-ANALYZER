@@ -1414,7 +1414,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (multiAiTableBody && Array.isArray(aiAnalysis.documents)) {
                 multiAiTableBody.innerHTML = '';
-                aiAnalysis.documents.forEach(doc => {
+                // Sort documents from low to high by AI Likelihood
+                const sortedAiDocs = [...aiAnalysis.documents].sort((a, b) => (parseFloat(a.ai_probability) || 0) - (parseFloat(b.ai_probability) || 0));
+                sortedAiDocs.forEach(doc => {
                     const row = document.createElement('tr');
                     const isAi = doc.classification === 'Likely AI-generated';
                     const isHuman = doc.classification === 'Likely human-written';

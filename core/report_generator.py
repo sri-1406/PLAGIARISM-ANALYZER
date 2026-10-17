@@ -10,6 +10,7 @@ from datetime import datetime
 import io
 import html
 import re
+import unicodedata
 
 class NumberedCanvas(canvas.Canvas):
     """
@@ -65,12 +66,97 @@ class NumberedCanvas(canvas.Canvas):
         self.restoreState()
 
 
+REPLACEMENTS_FOR_PDF = {
+    '\u2061': '',      # FUNCTION APPLICATION (invisible math character)
+    '\u200b': '',      # ZERO-WIDTH SPACE (causes black square in Helvetica)
+    '&#8203;': '',     # HTML entity for zero-width space
+    '\ufeff': '',      # BOM
+    '\u0305': '',      # COMBINING OVERLINE
+    '\u2192': '->',
+    '\u2190': '<-',
+    '\u21d2': '=>',
+    '\u21d4': '<->',
+    '\u2194': '<->',
+    '\u2217': '*',
+    '\u2212': '-',
+    '\u2013': '-',
+    '\u2014': '--',
+    '\u201c': '"',
+    '\u201d': '"',
+    '\u2018': "'",
+    '\u2019': "'",
+    '\u2032': "'",
+    '\u2022': '* ',
+    '\u03b5': 'epsilon',
+    '\u2211': 'sum',
+    '\xd7': 'x',
+    '\u0398': 'Theta',
+    '\u03a0': 'Pi',
+    '\u2208': ' in ',
+    '\u2209': ' not in ',
+    '\u2264': '<=',
+    '\u2265': '>=',
+    '\u2260': '!=',
+    '\u2248': '~=',
+    '\u221e': 'inf',
+    '\u2205': '{}',
+    '\u2229': ' intersect ',
+    '\u222a': ' union ',
+    '\u2282': ' subset ',
+    '\u2286': ' subseteq ',
+    '\u222b': 'integral',
+    '\u00ac': 'not ',
+    '\u00a0': ' ',
+    '\u2026': '...',   # HORIZONTAL ELLIPSIS
+    '\u22ef': '...',   # MIDLINE HORIZONTAL ELLIPSIS
+    '\u22ee': '...',   # VERTICAL ELLIPSIS
+    '\u2200': ' for all ',
+    '\u2203': ' exists ',
+    '\u2080': '0', '\u2081': '1', '\u2082': '2', '\u2083': '3', '\u2084': '4',
+    '\u2085': '5', '\u2086': '6', '\u2087': '7', '\u2088': '8', '\u2089': '9',
+    '\u208a': '+', '\u208b': '-', '\u2099': 'n',
+    '\u2070': '0', '\u00b9': '1', '\u00b2': '2', '\u00b3': '3', '\u2074': '4',
+    '\u2075': '5', '\u2076': '6', '\u2077': '7', '\u2078': '8', '\u2079': '9',
+    '\u207a': '+', '\u207b': '-', '\u207f': 'n',
+    '\u25a0': '',      # Strip pre-existing black square chars
+}
+
+def sanitize_text_for_pdf(text):
+    """
+    Sanitizes Unicode strings to WinAnsi/Latin-1 compatible characters.
+    Normalizes mathematical italic symbols (𝑋, 𝑌 -> X, Y), converts math symbols/arrows,
+    and eliminates unprintable characters that render as black square boxes in ReportLab.
+    """
+    if not text:
+        return ''
+    text = unicodedata.normalize('NFKD', str(text))
+    for k, v in REPLACEMENTS_FOR_PDF.items():
+        text = text.replace(k, v)
+    out = []
+    for ch in text:
+        try:
+            ch.encode('cp1252')
+            out.append(ch)
+        except UnicodeEncodeError:
+            out.append(' ')
+    return ''.join(out)
+
+def sanitize_pdf_data(obj):
+    """Recursively sanitizes all text fields inside lists, dictionaries, or scalar values."""
+    if isinstance(obj, str):
+        return sanitize_text_for_pdf(obj)
+    elif isinstance(obj, list):
+        return [sanitize_pdf_data(x) for x in obj]
+    elif isinstance(obj, dict):
+        return {k: sanitize_pdf_data(v) for k, v in obj.items()}
+    return obj
+
 def break_url_safely(url_str):
-    """Inserts zero-width break opportunities after punctuation so long URLs never overflow cells."""
+    """Sanitizes URL string safely without inserting tofu-causing zero-width characters."""
     if not url_str or url_str == 'N/A':
         return 'N/A'
-    escaped = html.escape(str(url_str))
-    return re.sub(r'([/?.&_=-])', r'\1&#8203;', escaped)
+    cleaned = sanitize_text_for_pdf(url_str)
+    return html.escape(cleaned)
 
 
 def make_progress_bar(score, width=225, height=8):
@@ -159,7 +245,8 @@ class ReportGenerator:
             fontName='Helvetica',
             fontSize=7.5,
             leading=10.5,
-            textColor=colors.HexColor('#1e293b')
+            textColor=colors.HexColor('#1e293b'),
+            wordWrap='CJK'
         )
         self.tbl_cell_bold = ParagraphStyle(
             'TblCellBold',
@@ -167,7 +254,16 @@ class ReportGenerator:
             fontName='Helvetica-Bold',
             fontSize=7.5,
             leading=10.5,
-            textColor=colors.HexColor('#1e293b')
+            textColor=colors.HexColor('#1e293b'),
+            wordWrap='CJK'
+        )
+        self.url_cell_style = ParagraphStyle(
+            'UrlStyle',
+            parent=self.tbl_cell,
+            fontSize=7,
+            leading=9,
+            textColor=colors.HexColor('#2563eb'),
+            wordWrap='CJK'
         )
         self.tbl_hdr = ParagraphStyle(
             'TblHdr',
@@ -183,7 +279,8 @@ class ReportGenerator:
             fontName='Helvetica-Oblique',
             fontSize=7.5,
             leading=10.5,
-            textColor=colors.HexColor('#334155')
+            textColor=colors.HexColor('#334155'),
+            wordWrap='CJK'
         )
         self.doc_content_style = ParagraphStyle(
             'DocContent',
@@ -191,8 +288,10 @@ class ReportGenerator:
             fontName='Helvetica',
             fontSize=8,
             leading=11.5,
-            textColor=colors.HexColor('#1e293b')
+            textColor=colors.HexColor('#1e293b'),
+            wordWrap='CJK'
         )
+
 
     def _highlight_text(self, raw_text, highlighted_matches):
         if not raw_text:
@@ -261,6 +360,10 @@ class ReportGenerator:
         return [p for p in all_paragraphs if p]
 
     def generate_single_report(self, text, results, filename=None, report_id=None, file_type=None):
+        text = sanitize_text_for_pdf(text)
+        if filename:
+            filename = sanitize_text_for_pdf(filename)
+        results = sanitize_pdf_data(results)
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -319,16 +422,16 @@ class ReportGenerator:
         # Meta Box
         meta_table = Table([
             [
-                Paragraph(f"<b>Report ID:</b> {report_id_str}", self.meta_val_style),
+                Paragraph(f"<b>Uploaded File:</b> {file_name_str}", self.meta_val_style),
                 Paragraph(f"<b>Analysis Date:</b> {analysis_date_str}", self.meta_val_style)
             ],
             [
-                Paragraph(f"<b>Uploaded File:</b> {file_name_str}", self.meta_val_style),
+                Paragraph(f"<b>File Type:</b> {file_type_str}", self.meta_val_style),
                 Paragraph(f"<b>Status:</b> <font color='#16a34a'><b>{status_str}</b></font>", self.meta_val_style)
             ],
             [
-                Paragraph(f"<b>File Type:</b> {file_type_str}", self.meta_val_style),
-                Paragraph(f"<b>Analysis Mode:</b> Single Document Analysis", self.meta_val_style)
+                Paragraph("<b>Analysis Mode:</b> Single Document Analysis", self.meta_val_style),
+                Paragraph("<b>Engine:</b> TF-IDF + Cosine Alignment", self.meta_val_style)
             ]
         ], colWidths=[252.5, 252.5])
         meta_table.setStyle(TableStyle([
@@ -430,8 +533,8 @@ class ReportGenerator:
         ]))
         story.append(disclaimer_table)
         
-        # Clean page break after executive summary
-        story.append(PageBreak())
+        # Seamless transition without artificial empty space
+        story.append(Spacer(1, 8))
 
         # ==================== PART 2: SOURCE & SENTENCE MATCHES ====================
         story.append(Paragraph("4. Source-wise Similarity Analysis", self.section_heading_style))
@@ -457,7 +560,7 @@ class ReportGenerator:
                 Paragraph(html.escape(title), self.tbl_cell),
                 Paragraph(f"{score:.1f}%", self.tbl_cell_bold),
                 Paragraph(level, self.tbl_cell),
-                Paragraph(f"<font color='#2563eb'>{formatted_url}</font>", ParagraphStyle('UrlStyle', parent=self.tbl_cell, fontSize=7, leading=9))
+                Paragraph(f"<font color='#2563eb'>{formatted_url}</font>", self.url_cell_style)
             ])
 
         if len(sec4_rows) == 1:
@@ -552,7 +655,7 @@ class ReportGenerator:
                     ],
                     [
                         Paragraph("<b>Matched Source:</b>", self.tbl_cell_bold),
-                        Paragraph(f"<b>{html.escape(src_title)}</b><br/><font color='#2563eb'>{break_url_safely(src_url)}</font>", self.tbl_cell)
+                        Paragraph(f"<b>{html.escape(src_title)}</b><br/><font color='#2563eb'>{break_url_safely(src_url)}</font>", ParagraphStyle('CardUrlStyle', parent=self.tbl_cell, wordWrap='CJK'))
                     ]
                 ]
                 t_card = Table(card_data, colWidths=[125, 380])
@@ -569,8 +672,8 @@ class ReportGenerator:
                 
                 story.append(KeepTogether([t_card, Spacer(1, 4)]))
 
-        # Clean transition to Document Content
-        story.append(PageBreak())
+        # Seamless transition without artificial empty space
+        story.append(Spacer(1, 10))
 
         # ==================== PART 3: HIGHLIGHTED DOCUMENT CONTENT ====================
         story.append(Paragraph("7. Highlighted Document Content", self.section_heading_style))
@@ -605,8 +708,8 @@ class ReportGenerator:
                 story.append(Paragraph(html.escape(clean_text), self.doc_content_style))
             story.append(Spacer(1, 3))
             
-        # Clean transition to Technical Audit
-        story.append(PageBreak())
+        # Seamless transition without artificial empty space
+        story.append(Spacer(1, 10))
 
         # ==================== PART 4: TECHNICAL AUDIT & METRICS ====================
         # 8. Matching Statistics and Metrics
@@ -672,30 +775,8 @@ class ReportGenerator:
         story.append(t_method)
         story.append(Spacer(1, 6))
 
-        # 10. Proposed Future Enhancements (KeepTogether)
-        h10 = Paragraph("10. Proposed Future Enhancements", self.section_heading_style)
-        enh_table = Table([
-            [
-                Paragraph(
-                    "<font color='#475569'><b>ARCHITECTURAL ENHANCEMENTS (Under Active Development / Research):</b><br/>"
-                    "&bull; <b>Deep Learning Semantic Embeddings:</b> Dense vector encodings via Sentence-BERT / Transformer models.<br/>"
-                    "&bull; <b>Scalable Vector Database Indexing:</b> High-dimensional ANN indexing using Faiss / Milvus.<br/>"
-                    "&bull; <b>Cross-Lingual Semantic Matching:</b> Cross-lingual transfer embeddings for translated plagiarism.<br/>"
-                    "&bull; <b>Collusion Network Detection:</b> Graph neural networks for student submission collusion rings.</font>",
-                    self.tbl_cell
-                )
-            ]
-        ], colWidths=[505])
-        enh_table.setStyle(TableStyle([
-            ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
-            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8fafc')),
-            ('PADDING', (0,0), (-1,-1), 4),
-        ]))
-        story.append(KeepTogether([h10, enh_table]))
-        story.append(Spacer(1, 6))
-
-        # 11. Analysis Conclusion (KeepTogether)
-        h11 = Paragraph("11. Analysis Conclusion", self.section_heading_style)
+        # 10. Analysis Conclusion (KeepTogether)
+        h10 = Paragraph("10. Analysis Conclusion", self.section_heading_style)
         conc_table = Table([
             [
                 Paragraph(
@@ -713,13 +794,12 @@ class ReportGenerator:
             ('BACKGROUND', (0,0), (-1,-1), colors.white),
             ('PADDING', (0,0), (-1,-1), 5),
         ]))
-        story.append(KeepTogether([h11, conc_table]))
+        story.append(KeepTogether([h10, conc_table]))
         story.append(Spacer(1, 6))
 
-        # 12. Technical System Metadata (KeepTogether)
-        h12 = Paragraph("12. Technical System Metadata", self.section_heading_style)
+        # 11. Technical System Metadata (KeepTogether)
+        h11 = Paragraph("11. Technical System Metadata", self.section_heading_style)
         meta_sys_data = [
-            [Paragraph("<b>Report Identifier:</b>", self.tbl_cell_bold), Paragraph(f"{report_id_str}", self.tbl_cell)],
             [Paragraph("<b>Database Engine:</b>", self.tbl_cell_bold), Paragraph("SQLite3 (database.db)", self.tbl_cell)],
             [Paragraph("<b>NLP Frameworks:</b>", self.tbl_cell_bold), Paragraph("NLTK, scikit-learn, TF-IDF Vectorizer", self.tbl_cell)],
             [Paragraph("<b>AI Detection Engine:</b>", self.tbl_cell_bold), Paragraph("RoBERTa-base (HC3 Dataset Fine-Tuned)", self.tbl_cell)],
@@ -736,7 +816,7 @@ class ReportGenerator:
             ('LEFTPADDING', (0,0), (-1,-1), 6),
             ('RIGHTPADDING', (0,0), (-1,-1), 6),
         ]))
-        story.append(KeepTogether([h12, t_sys_meta]))
+        story.append(KeepTogether([h11, t_sys_meta]))
 
         # Build document
         doc.build(story, canvasmaker=NumberedCanvas)
@@ -744,6 +824,9 @@ class ReportGenerator:
         return buffer
 
     def generate_multi_report(self, doc_names, matrix, pairwise_results, report_id=None, ai_analysis=None):
+        doc_names = sanitize_pdf_data(doc_names)
+        pairwise_results = sanitize_pdf_data(pairwise_results)
+        ai_analysis = sanitize_pdf_data(ai_analysis) if ai_analysis else None
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -781,16 +864,16 @@ class ReportGenerator:
         # Metadata Table
         meta_table = Table([
             [
-                Paragraph(f"<b>Report ID:</b> {report_id_str}", self.meta_val_style),
+                Paragraph(f"<b>Documents Analyzed:</b> {num_docs} files", self.meta_val_style),
                 Paragraph(f"<b>Analysis Date:</b> {now_str}", self.meta_val_style)
             ],
             [
-                Paragraph(f"<b>Documents Analyzed:</b> {num_docs} files", self.meta_val_style),
+                Paragraph("<b>Analysis Mode:</b> Multi-Document Comparison", self.meta_val_style),
                 Paragraph(f"<b>Status:</b> <font color='#16a34a'><b>Completed (Verified)</b></font>", self.meta_val_style)
             ],
             [
-                Paragraph("<b>Analysis Mode:</b> Multi-Document Comparison", self.meta_val_style),
-                Paragraph("<b>Engine:</b> TF-IDF + Cosine Alignment", self.meta_val_style)
+                Paragraph("<b>Engine:</b> TF-IDF + Cosine Alignment", self.meta_val_style),
+                Paragraph("<b>Corpus Verification:</b> Cross-Document Matrix", self.meta_val_style)
             ]
         ], colWidths=[252.5, 252.5])
         meta_table.setStyle(TableStyle([
@@ -859,8 +942,8 @@ class ReportGenerator:
         ]))
         story.append(disclaimer_table)
         
-        # Clean page break after executive summary
-        story.append(PageBreak())
+        # Seamless transition without artificial empty space
+        story.append(Spacer(1, 8))
 
         # ==================== SECTION 2: MATRIX & RANKINGS ====================
         story.append(Paragraph("2. Pairwise Comparison Matrix & Rankings", self.section_heading_style))
@@ -934,8 +1017,22 @@ class ReportGenerator:
         story.append(Spacer(1, 8))
 
         # ==================== SECTION 3: PAIRWISE DETAILS ====================
-        story.append(Paragraph("3. Detailed Pairwise Similarity Results", self.section_heading_style))
-        story.append(Paragraph("Individual matching sentence passages and alignments identified across document pairs.", self.section_desc_style))
+        h_sec3 = Paragraph("3. Detailed Pairwise Similarity Results", self.section_heading_style)
+        h_sec3.keepWithNext = True
+        desc_sec3 = Paragraph("Individual matching sentence passages and alignments identified across document pairs.", self.section_desc_style)
+        desc_sec3.keepWithNext = True
+        story.append(h_sec3)
+        story.append(desc_sec3)
+
+        if not sorted_pairs:
+            empty_sec3 = Table([[Paragraph("<i>No specific sentence segment overlaps detected between pairs.</i>", self.section_desc_style)]], colWidths=[505])
+            empty_sec3.setStyle(TableStyle([
+                ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
+                ('BACKGROUND', (0,0), (-1,-1), colors.white),
+                ('PADDING', (0,0), (-1,-1), 4),
+            ]))
+            story.append(empty_sec3)
+            story.append(Spacer(1, 6))
 
         for idx, p in enumerate(sorted_pairs[:10]):
             score = float(p.get('similarity_percentage', 0))
@@ -954,9 +1051,9 @@ class ReportGenerator:
                 ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
                 ('PADDING', (0,0), (-1,-1), 4),
             ]))
+            story.append(pair_header)
 
             matches = p.get('matches', [])
-            pair_elements = [pair_header]
             if matches:
                 m_table_data = [[
                     Paragraph("#", self.tbl_hdr),
@@ -983,7 +1080,7 @@ class ReportGenerator:
                     ('ALIGN', (3,0), (3,-1), 'CENTER'),
                     ('PADDING', (0,0), (-1,-1), 3),
                 ]))
-                pair_elements.append(t_matches)
+                story.append(t_matches)
             else:
                 empty_t = Table([[Paragraph("<i>No specific sentence segment overlaps detected between this pair.</i>", self.section_desc_style)]], colWidths=[505])
                 empty_t.setStyle(TableStyle([
@@ -991,10 +1088,10 @@ class ReportGenerator:
                     ('BACKGROUND', (0,0), (-1,-1), colors.white),
                     ('PADDING', (0,0), (-1,-1), 4),
                 ]))
-                pair_elements.append(empty_t)
+                story.append(empty_t)
             
-            pair_elements.append(Spacer(1, 6))
-            story.append(KeepTogether(pair_elements))
+            story.append(Spacer(1, 6))
+
 
         # ==================== SECTION 4: AI CONTENT AUDIT ====================
         sec_num = 4
@@ -1011,7 +1108,9 @@ class ReportGenerator:
                     Paragraph("Confidence", self.tbl_hdr)
                 ]
             ]
-            for d in ai_analysis.get('documents', []):
+            # Sort documents from low to high by AI Likelihood
+            sorted_ai_docs = sorted(ai_analysis.get('documents', []), key=lambda d: float(d.get('ai_probability', 0.0)))
+            for d in sorted_ai_docs:
                 ai_p = float(d.get('ai_probability', 0.0))
                 ai_col = '#dc2626' if ai_p >= 70 else ('#ea580c' if ai_p >= 40 else '#16a34a')
                 ai_tbl_data.append([
@@ -1068,28 +1167,6 @@ class ReportGenerator:
         story.append(Spacer(1, 6))
         sec_num += 1
 
-        # Future Enhancements Box (KeepTogether)
-        h_enh = Paragraph(f"{sec_num}. Proposed Future Enhancements", self.section_heading_style)
-        enh_table = Table([
-            [
-                Paragraph(
-                    "<font color='#475569'><b>ARCHITECTURAL ENHANCEMENTS (Under Active Development / Research):</b><br/>"
-                    "&bull; <b>Graph-Based Collusion Detection:</b> Document collusion network analysis with bipartite graphs.<br/>"
-                    "&bull; <b>Cross-Lingual Embedding Alignment:</b> Multilingual Transformer models for cross-language matching.<br/>"
-                    "&bull; <b>Hierarchical Clustering:</b> Unsupervised clustering to detect co-author clusters across large corpora.</font>",
-                    self.tbl_cell
-                )
-            ]
-        ], colWidths=[505])
-        enh_table.setStyle(TableStyle([
-            ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
-            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8fafc')),
-            ('PADDING', (0,0), (-1,-1), 4),
-        ]))
-        story.append(KeepTogether([h_enh, enh_table]))
-        story.append(Spacer(1, 6))
-        sec_num += 1
-
         # Section Conclusion (KeepTogether)
         h_conc = Paragraph(f"{sec_num}. Analysis Conclusion", self.section_heading_style)
         conc_text = (
@@ -1118,7 +1195,6 @@ class ReportGenerator:
         # Technical System Metadata (KeepTogether)
         h_meta = Paragraph(f"{sec_num}. Technical System Metadata", self.section_heading_style)
         meta_sys_data = [
-            [Paragraph("<b>Report Identifier:</b>", self.tbl_cell_bold), Paragraph(f"{report_id_str}", self.tbl_cell)],
             [Paragraph("<b>Database Engine:</b>", self.tbl_cell_bold), Paragraph("SQLite3 (database.db)", self.tbl_cell)],
             [Paragraph("<b>NLP Frameworks:</b>", self.tbl_cell_bold), Paragraph("NLTK, scikit-learn, TF-IDF Vectorizer", self.tbl_cell)],
             [Paragraph("<b>Application Version:</b>", self.tbl_cell_bold), Paragraph("Plagiarism Analyzer v2.0 (Flask)", self.tbl_cell)],
